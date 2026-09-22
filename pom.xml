@@ -38,6 +38,7 @@
         <easyexcel.version>3.3.4</easyexcel.version>
         <pdfbox.version>3.0.2</pdfbox.version>
         <zxing.version>3.5.3</zxing.version>
+        <rocketmq-spring.version>2.3.0</rocketmq-spring.version>
     </properties>
 
     <dependencyManagement>

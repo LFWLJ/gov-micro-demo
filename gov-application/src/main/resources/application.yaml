@@ -26,6 +26,12 @@ spring:
       database: 0
       timeout: 3000ms
 
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: gov-application-producer
+    send-message-timeout: 3000
+
 # Flowable 配置
 flowable:
   database-schema-update: true

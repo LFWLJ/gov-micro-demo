@@ -15,6 +15,8 @@ import org.flowable.task.api.history.HistoricTaskInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.gov.application.mq.NotifyMessage;
+import com.gov.application.mq.NotifyProducer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +44,9 @@ public class ProcessBizService {
     @Autowired
     private ApplicationLogService applicationLogService;
 
+    @Autowired
+    private NotifyProducer notifyProducer;
+
     /**
      * 发起流程
      */
@@ -68,6 +73,20 @@ public class ProcessBizService {
         result.put("processDefinitionId", instance.getProcessDefinitionId());
         result.put("tenantId", tenantId);
         result.put("businessKey", businessKey);
+
+        // ★ 通知第一审批人
+        String deptLeader = (String) variables.get("deptLeader");
+        if (deptLeader != null) {
+            NotifyMessage msg = NotifyMessage.of(
+                    "TASK_CREATED",
+                    null,
+                    instance.getId(),
+                    tenantId,
+                    deptLeader,
+                    String.format("事项「%s」，申请人：%s", businessKey, applicant)
+            );
+            notifyProducer.send(msg);
+        }
         return result;
     }
 
@@ -124,6 +143,17 @@ public class ProcessBizService {
         // 2. 完成当前任务
         taskService.complete(taskId, variables);
 
+        // ★ 通知当前处理人任务已完成
+        NotifyMessage doneMsg = NotifyMessage.of(
+                "TASK_COMPLETED",
+                null,
+                processInstanceId,
+                tenantId,
+                assignee,
+                String.format("任务「%s」", task.getName())
+        );
+        notifyProducer.send(doneMsg);
+
         // 3. 判断流程是否结束
         long remaining = taskService.createTaskQuery()
                 .processInstanceId(processInstanceId)
@@ -152,6 +182,27 @@ public class ProcessBizService {
                                 assignee,
                                 "流程审批完成，办件已通过"
                         );
+                        // ★ 通知申请人办件通过
+                        NotifyMessage approvedMsg = NotifyMessage.of(
+                                "PROCESS_APPROVED",
+                                appId,
+                                processInstanceId,
+                                tenantId,
+                                app.getApplicant(),
+                                String.format("事项「%s」", app.getTitle())
+                        );
+                        notifyProducer.send(approvedMsg);
+
+                         // ★ 触发评价邀请
+                        NotifyMessage inviteMsg = NotifyMessage.of(
+                                "EVALUATION_INVITE",
+                                appId,
+                                processInstanceId,
+                                tenantId,
+                                app.getApplicant(),
+                                String.format("事项「%s」", app.getTitle())
+                        );
+                        notifyProducer.send(inviteMsg);
                     }
                 }
             } catch (Exception e) {
