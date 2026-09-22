@@ -3,6 +3,8 @@
 *.iml
 *.iws
 *.ipr
+target/
+node_modules
 .apt_generated
 .springBeans
 .sts-cache
