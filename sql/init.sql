@@ -4,6 +4,7 @@
 -- 字符集：utf8mb4
 -- 说明：Flowable 的 ACT_* 表由应用启动时自动创建，不在本脚本中
 -- 可重复执行（先 DROP 再 CREATE）
+-- 日期字段用 CURDATE()/NOW() 动态生成
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS gov_db
@@ -360,13 +361,13 @@ CREATE TABLE sys_sensitive_word (
 DROP TABLE IF EXISTS t_notify;
 CREATE TABLE t_notify (
                           id          BIGINT       PRIMARY KEY AUTO_INCREMENT,
-                          tenant_id   VARCHAR(64)  NOT NULL,
-                          receiver    VARCHAR(64)  NOT NULL,
-                          title       VARCHAR(128) NOT NULL,
-                          content     VARCHAR(500),
-                          type        VARCHAR(32)  COMMENT 'TASK/EVALUATION/SYSTEM',
-                          biz_id      BIGINT,
-                          is_read     TINYINT      DEFAULT 0,
+                          tenant_id   VARCHAR(64)  NOT NULL              COMMENT '租户ID',
+                          receiver    VARCHAR(64)  NOT NULL              COMMENT '接收人',
+                          title       VARCHAR(128) NOT NULL              COMMENT '标题',
+                          content     VARCHAR(500)                       COMMENT '内容',
+                          type        VARCHAR(32)                        COMMENT 'TASK/EVALUATION/SYSTEM',
+                          biz_id      BIGINT                             COMMENT '关联业务ID',
+                          is_read     TINYINT      DEFAULT 0             COMMENT '0未读 1已读',
                           read_time   DATETIME,
                           create_time DATETIME     DEFAULT CURRENT_TIMESTAMP,
                           INDEX idx_receiver (tenant_id, receiver, is_read)
@@ -450,7 +451,7 @@ INSERT INTO t_application (tenant_id, dept_id, create_by, title, applicant, stat
                                                                                         ('tenant_b', 6, '3', 'B市食品经营许可', '赵六', 'PENDING'),
                                                                                         ('tenant_b', 6, '3', 'B市建设项目审批', '孙七', 'APPROVED');
 
--- -------------------- 办件流转日志 --------------------
+-- -------------------- 办件流转日志（继承事项） --------------------
 INSERT INTO t_application_log (tenant_id, application_id, action, action_name, operator, remark)
 SELECT tenant_id, id, 'SUBMIT', '提交申请', '系统初始化', '历史数据初始化'
 FROM t_application;
@@ -535,6 +536,13 @@ VALUES
      'COMPLAINT', '窗口人员服务态度差',
      '今天下午3点，3号窗口工作人员态度冷淡。',
      '李四', '13800000002', 2, 'PROCESSING');
+
+-- -------------------- 消息通知 --------------------
+INSERT INTO t_notify (tenant_id, receiver, title, content, type, is_read, create_time) VALUES
+                                                                                           ('tenant_a', '市级管理员', '系统通知', '欢迎使用政务管理系统，祝您工作愉快！', 'SYSTEM', 0, NOW()),
+                                                                                           ('tenant_a', '市级管理员', '待办提醒', '您有 3 条事项待审批，请及时处理', 'TASK', 0, NOW()),
+                                                                                           ('tenant_a', '市级管理员', '办件完成', '事项「A市营业执照变更」已审批通过', 'SYSTEM', 1, NOW() - INTERVAL 1 DAY),
+                                                                                           ('tenant_b', 'B市管理员', '系统通知', 'B市政务系统已上线', 'SYSTEM', 0, NOW());
 
 -- -------------------- 字典类型 --------------------
 INSERT INTO sys_dict_type (tenant_id, dict_type, dict_name, remark) VALUES
