@@ -77,6 +77,10 @@ spring:
           uri: lb://gov-application
           predicates:
             - Path=/api/appointment/**
+        - id: gov-notify
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/notify/**
   data:
     redis:
       host: 127.0.0.1
