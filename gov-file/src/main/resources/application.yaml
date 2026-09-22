@@ -1,0 +1,38 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: gov-file
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 7PkhQ0b92nUU
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+minio:
+  endpoint: http://127.0.0.1:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket: gov-files
+  presigned-expiry: 3600
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

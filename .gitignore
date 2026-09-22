@@ -1,0 +1,52 @@
+# ===================== IDEA 相关 =====================
+.idea/
+*.iml
+*.iws
+*.ipr
+.apt_generated
+.springBeans
+.sts-cache
+rebel.xml
+
+# ===================== Maven 相关 =====================
+target/
+!pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.next
+pom.xml.bak
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ===================== 前端 gov-admin-web =====================
+gov-admin-web/node_modules/
+gov-admin-web/dist/
+gov-admin-web/.vscode/
+gov-admin-web/.eslintcache
+gov-admin-web/node_modules/
+gov-admin-web/npm-debug.log*
+gov-admin-web/yarn-debug.log*
+gov-admin-web/yarn-error.log*
+
+# ===================== 日志、临时文件 =====================
+logs/
+*.log
+*.log.*
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# ===================== 操作系统文件 =====================
+.DS_Store
+Thumbs.db
+
+# ===================== 本地环境配置 =====================
+application-local.yml
+application-local.yaml
+application-dev.yml
+!application-dev-example.yml
+gov-application/src/main/resources/fonts/

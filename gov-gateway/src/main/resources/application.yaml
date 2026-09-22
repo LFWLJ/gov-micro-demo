@@ -1,0 +1,92 @@
+server:
+  port: 8090
+spring:
+  application:
+    name: gov-gateway
+    main:
+      web-application-type: reactive
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 7PkhQ0b92nUU
+    gateway:
+      routes:
+        - id: gov-auth
+          uri: lb://gov-auth
+          predicates:
+            - Path=/api/auth/**
+        - id: gov-application
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/application/**
+        - id: gov-application-process
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/process/**
+        - id: gov-application-operlog
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/operlog/**
+        - id: gov-dashboard
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/dashboard/**
+        - id: gov-dept
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/dept/**
+        - id: gov-screen
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/screen/**
+        - id: gov-file
+          uri: lb://gov-file
+          predicates:
+            - Path=/api/file/**
+        - id: gov-report
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/report/**
+        - id: gov-evaluation
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/evaluation/**
+        - id: gov-license
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/license/**
+        - id: gov-dict
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/dict/**
+        - id: gov-config
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/config/**
+        - id: gov-guide
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/guide/**
+        - id: gov-appointment
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/appointment/**
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+gov:
+  jwt:
+    secret: gov-micro-demo-secret-key-2026-very-long-for-hs256
+gateway:
+  auth:
+    white-list:
+      - /api/auth/login
+      - /api/auth/login
+      - /api/license/verify/**

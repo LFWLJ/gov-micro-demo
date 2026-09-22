@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: gov-auth
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 7PkhQ0b92nUU
+
+gov:
+  jwt:
+    secret: gov-micro-demo-secret-key-2026-very-long-for-hs256
+    expire: 7200
+
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn

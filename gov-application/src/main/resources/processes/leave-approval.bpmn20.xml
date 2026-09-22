@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://gov.com/process">
+
+    <process id="leaveApproval" name="请假审批" isExecutable="true">
+
+        <startEvent id="start" name="发起申请"/>
+
+        <sequenceFlow id="flow1" sourceRef="start" targetRef="deptLeaderTask"/>
+
+        <userTask id="deptLeaderTask" name="部门领导审批"
+                  flowable:assignee="${deptLeader}"/>
+
+        <sequenceFlow id="flow2" sourceRef="deptLeaderTask" targetRef="decision"/>
+
+        <exclusiveGateway id="decision" name="天数判断"/>
+
+        <sequenceFlow id="flow3" sourceRef="decision" targetRef="hrTask">
+            <conditionExpression xsi:type="tFormalExpression">
+                <![CDATA[${days <= 3}]]>
+            </conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow id="flow4" sourceRef="decision" targetRef="directorTask">
+            <conditionExpression xsi:type="tFormalExpression">
+                <![CDATA[${days > 3}]]>
+            </conditionExpression>
+        </sequenceFlow>
+
+        <userTask id="hrTask" name="人事备案"
+                  flowable:assignee="${hr}"/>
+
+        <userTask id="directorTask" name="分管领导审批"
+                  flowable:assignee="${director}"/>
+
+        <sequenceFlow id="flow5" sourceRef="hrTask" targetRef="end"/>
+
+        <sequenceFlow id="flow6" sourceRef="directorTask" targetRef="hrTask2"/>
+
+        <userTask id="hrTask2" name="人事备案"
+                  flowable:assignee="${hr}"/>
+
+        <sequenceFlow id="flow7" sourceRef="hrTask2" targetRef="end"/>
+
+        <endEvent id="end" name="审批完成"/>
+
+    </process>
+
+</definitions>
