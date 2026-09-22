@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.gov.auth.entity.SysUser;
+import java.util.Map;
 
 
 import java.util.Map;
@@ -34,6 +36,52 @@ public class UserController {
     @OpLog(module = "用户管理", operation = "新增用户", saveParams = false)
     public R<Long> create(@RequestBody UserSaveDTO dto) {
         return R.ok("新增成功", userService.create(dto));
+    }
+
+    @Operation(summary = "获取当前用户信息")
+    @GetMapping("/profile")
+    public R<SysUser> profile(
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null || userId.isEmpty()) {
+            return R.fail(401, "未登录");
+        }
+        SysUser user = userService.findById(Long.valueOf(userId));
+        if (user == null) {
+            return R.fail(404, "用户不存在");
+        }
+        // 脱敏：不返回密码
+        user.setPassword(null);
+        return R.ok(user);
+    }
+
+    @Operation(summary = "修改个人信息")
+    @PutMapping("/profile")
+    @OpLog(module = "个人中心", operation = "修改个人信息")
+    public R<Void> updateProfile(
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestBody Map<String, String> body) {
+        if (userId == null || userId.isEmpty()) {
+            return R.fail(401, "未登录");
+        }
+        userService.updateProfile(Long.valueOf(userId), body.get("realName"));
+        return R.ok("修改成功", null);
+    }
+
+    @Operation(summary = "修改密码")
+    @PutMapping("/password")
+    @OpLog(module = "个人中心", operation = "修改密码", saveParams = false)
+    public R<Void> changePassword(
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestBody Map<String, String> body) {
+        if (userId == null || userId.isEmpty()) {
+            return R.fail(401, "未登录");
+        }
+        userService.changePassword(
+                Long.valueOf(userId),
+                body.get("oldPassword"),
+                body.get("newPassword")
+        );
+        return R.ok("密码修改成功", null);
     }
 
     @Operation(summary = "修改用户")

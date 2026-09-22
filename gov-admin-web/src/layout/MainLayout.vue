@@ -87,7 +87,12 @@
 
           <el-button type="primary" link @click="goScreen">数据大屏</el-button>
 
-          <span>{{ userStore.realName }} ({{ userStore.tenantId }})</span>
+                    <span
+                     style="cursor:pointer;"
+                     @click="$router.push('/profile')"
+                   >
+                     {{ userStore.realName }} ({{ userStore.tenantId }})
+                    </span>
 
           <el-button link type="primary" @click="handleLogout">退出</el-button>
         </div>

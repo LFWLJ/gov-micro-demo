@@ -108,7 +108,13 @@ const routes = [
         name: 'Appointment',
         component: () => import('../views/Appointment.vue'),
         meta: { title: '预约取号' }
-      }
+      },
+       {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('../views/Profile.vue'),
+        meta: { title: '个人中心' }
+      },
       
     ]
   }
