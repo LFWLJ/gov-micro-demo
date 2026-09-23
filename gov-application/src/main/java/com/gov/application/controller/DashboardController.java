@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,14 +53,18 @@ public class DashboardController {
         Long totalApplications = applicationMapper.selectCount(null);
         data.put("totalApplications", totalApplications);
 
-        // 2. 各状态事项数
+        // 2. 各状态事项数（1 条 SQL 代替 3 条）
         Map<String, Long> statusCount = new HashMap<>();
-        statusCount.put("DRAFT", countByStatus("DRAFT"));
-        statusCount.put("PENDING", countByStatus("PENDING"));
-        statusCount.put("APPROVED", countByStatus("APPROVED"));
+        statusCount.put("DRAFT", 0L);
+        statusCount.put("PENDING", 0L);
+        statusCount.put("APPROVED", 0L);
+        for (Map<String, Object> row : applicationMapper.groupByStatus(tenantId)) {
+            statusCount.put(String.valueOf(row.get("status")),
+                    ((Number) row.get("cnt")).longValue());
+        }
         data.put("statusCount", statusCount);
 
-        // 3. 待办任务数（Flowable）
+        // 3. 待办任务数
         Long pendingTasks = taskService.createTaskQuery()
                 .taskTenantId(tenantId)
                 .count();
@@ -76,51 +81,38 @@ public class DashboardController {
         Long logCount = operLogMapper.selectCount(null);
         data.put("logCount", logCount);
 
-        // 6. 最近 7 天事项趋势
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
-        List<Map<String, Object>> trend = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            LocalDateTime start = date.atStartOfDay();
-            LocalDateTime end = date.plusDays(1).atStartOfDay();
+        // 6. 最近 7 天事项趋势（1 条 SQL 代替 7 条）
+        LocalDate today = LocalDate.now();
+        LocalDateTime sevenDaysAgo = today.minusDays(6).atStartOfDay();
+        LocalDateTime tomorrow = today.plusDays(1).atStartOfDay();
+        data.put("trend", build7DayTrend(applicationMapper.groupByDate(tenantId, sevenDaysAgo, tomorrow)));
 
-            Long count = applicationMapper.selectCount(
-                    new LambdaQueryWrapper<Application>()
-                            .ge(Application::getCreateTime, start)
-                            .lt(Application::getCreateTime, end));
-
-            Map<String, Object> item = new HashMap<>();
-            item.put("date", date.format(fmt));
-            item.put("count", count);
-            trend.add(item);
-        }
-        data.put("trend", trend);
-
-        // 7. 最近 7 天日志趋势
-        List<Map<String, Object>> logTrend = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            LocalDateTime start = date.atStartOfDay();
-            LocalDateTime end = date.plusDays(1).atStartOfDay();
-
-            Long count = operLogMapper.selectCount(
-                    new LambdaQueryWrapper<OperLog>()
-                            .ge(OperLog::getCreateTime, start)
-                            .lt(OperLog::getCreateTime, end));
-
-            Map<String, Object> item = new HashMap<>();
-            item.put("date", date.format(fmt));
-            item.put("count", count);
-            logTrend.add(item);
-        }
-        data.put("logTrend", logTrend);
+        // 7. 最近 7 天日志趋势（1 条 SQL 代替 7 条）
+        data.put("logTrend", build7DayTrend(operLogMapper.groupByDate(tenantId, sevenDaysAgo, tomorrow)));
 
         return R.ok(data);
     }
 
-    private Long countByStatus(String status) {
-        return applicationMapper.selectCount(
-                new LambdaQueryWrapper<Application>()
-                        .eq(Application::getStatus, status));
+    private List<Map<String, Object>> build7DayTrend(List<Map<String, Object>> rows) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
+        Map<String, Long> byDay = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object day = row.get("day");
+            long cnt = ((Number) row.get("cnt")).longValue();
+            String key = day instanceof LocalDate
+                    ? ((LocalDate) day).format(fmt)
+                    : String.valueOf(day);
+            byDay.put(key, cnt);
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            String key = date.format(fmt);
+            Map<String, Object> item = new HashMap<>();
+            item.put("date", key);
+            item.put("count", byDay.getOrDefault(key, 0L));
+            result.add(item);
+        }
+        return result;
     }
 }
