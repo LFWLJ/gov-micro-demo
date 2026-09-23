@@ -2,8 +2,10 @@ package com.gov.common.redis;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -11,6 +13,16 @@ public class RedisService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    private static final String UNLOCK_SCRIPT =
+            "if redis.call('get', KEYS[1]) == ARGV[1] then " +
+            "  return redis.call('del', KEYS[1]) " +
+            "else " +
+            "  return 0 " +
+            "end";
+
+    private final DefaultRedisScript<Long> unlockScript =
+            new DefaultRedisScript<>(UNLOCK_SCRIPT, Long.class);
 
     // ---------- String 操作 ----------
 
@@ -48,26 +60,17 @@ public class RedisService {
         return redisTemplate.opsForValue().increment(key, delta);
     }
 
-    // ---------- 分布式锁（简单版） ----------
+    // ---------- 分布式锁 ----------
 
-    /**
-     * 尝试加锁
-     * @return true 表示抢到锁
-     */
     public boolean tryLock(String key, String value, long timeoutSeconds) {
         Boolean ok = redisTemplate.opsForValue()
                 .setIfAbsent(key, value, timeoutSeconds, TimeUnit.SECONDS);
         return Boolean.TRUE.equals(ok);
     }
 
-    /**
-     * 释放锁（只有持有者能释放）
-     */
     public boolean releaseLock(String key, String value) {
-        Object current = redisTemplate.opsForValue().get(key);
-        if (value.equals(current)) {
-            return Boolean.TRUE.equals(redisTemplate.delete(key));
-        }
-        return false;
+        Long result = redisTemplate.execute(unlockScript,
+                Collections.singletonList(key), value);
+        return result != null && result == 1L;
     }
 }
