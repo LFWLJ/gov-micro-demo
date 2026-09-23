@@ -5,30 +5,31 @@ spring:
   application:
     name: gov-file
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root123
+    url: ${GOV_DB_URL:jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${GOV_DB_USERNAME:root}
+    password: ${GOV_DB_PASSWORD:root123}
     driver-class-name: com.mysql.cj.jdbc.Driver
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: 7PkhQ0b92nUU
+        server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
+        username: ${GOV_NACOS_USERNAME:nacos}
+        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: ${GOV_REDIS_HOST:127.0.0.1}
+      port: ${GOV_REDIS_PORT:6379}
+      password: ${GOV_REDIS_PASSWORD:}
 
 minio:
-  endpoint: http://127.0.0.1:9000
-  access-key: minioadmin
-  secret-key: minioadmin
-  bucket: gov-files
+  endpoint: ${GOV_MINIO_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${GOV_MINIO_ACCESS:minioadmin}
+  secret-key: ${GOV_MINIO_SECRET:minioadmin}
+  bucket: ${GOV_MINIO_BUCKET:gov-files}
   presigned-expiry: 3600
 
 springdoc:

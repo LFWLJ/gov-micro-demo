@@ -5,9 +5,9 @@ spring:
   application:
     name: gov-application
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
-    username: root
-    password: root123
+    url: ${GOV_DB_URL:jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true}
+    username: ${GOV_DB_USERNAME:root}
+    password: ${GOV_DB_PASSWORD:root123}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
@@ -16,18 +16,19 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: 7PkhQ0b92nUU
+        server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
+        username: ${GOV_NACOS_USERNAME:nacos}
+        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: ${GOV_REDIS_HOST:127.0.0.1}
+      port: ${GOV_REDIS_PORT:6379}
+      password: ${GOV_REDIS_PASSWORD:}
       database: 0
       timeout: 3000ms
 
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: ${GOV_ROCKETMQ_ADDR:127.0.0.1:9876}
   producer:
     group: gov-application-producer
     send-message-timeout: 3000

@@ -5,9 +5,9 @@ spring:
   application:
     name: gov-auth
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root123
+    url: ${GOV_DB_URL:jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${GOV_DB_USERNAME:root}
+    password: ${GOV_DB_PASSWORD:root123}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
@@ -16,9 +16,9 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: 7PkhQ0b92nUU
+        server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
+        username: ${GOV_NACOS_USERNAME:nacos}
+        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
 
 gov:
   jwt:
