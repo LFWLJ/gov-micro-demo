@@ -12,10 +12,24 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: 7PkhQ0b92nUU
+        server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
+        username: ${GOV_NACOS_USERNAME:nacos}
+        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
+      config:
+        server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
+        username: ${GOV_NACOS_USERNAME:nacos}
+        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
+        file-extension: yaml
+        refresh-enabled: true
+        extension-configs:
+          - data-id: gateway-routes.yaml
+            group: DEFAULT_GROUP
+            refresh: true
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -29,78 +43,19 @@ spring:
           uri: lb://gov-auth
           predicates:
             - Path=/api/auth/**
-        - id: gov-application
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/application/**
-        - id: gov-application-process
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/process/**
-        - id: gov-application-operlog
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/operlog/**
-        - id: gov-dashboard
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/dashboard/**
-        - id: gov-dept
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/dept/**
-        - id: gov-screen
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/screen/**
         - id: gov-file
           uri: lb://gov-file
           predicates:
             - Path=/api/file/**
-        - id: gov-report
+        - id: gov-application
           uri: lb://gov-application
           predicates:
-            - Path=/api/report/**
-        - id: gov-evaluation
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/evaluation/**
-        - id: gov-license
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/license/**
-        - id: gov-dict
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/dict/**
-        - id: gov-config
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/config/**
-        - id: gov-guide
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/guide/**
-        - id: gov-appointment
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/appointment/**
-        - id: gov-notify
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/notify/**
-        - id: gov-consult
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/consult/**
-        - id: gov-workspace
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/workspace/**
+            - Path=/api/application/**,/api/process/**,/api/operlog/**,/api/dashboard/**,/api/dept/**,/api/screen/**,/api/report/**,/api/evaluation/**,/api/license/**,/api/dict/**,/api/config/**,/api/guide/**,/api/appointment/**,/api/notify/**,/api/consult/**,/api/workspace/**
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: ${GOV_REDIS_HOST:127.0.0.1}
+      port: ${GOV_REDIS_PORT:6379}
+      password: ${GOV_REDIS_PASSWORD:}
 gov:
   jwt:
     secret: ${GOV_JWT_SECRET:gov-micro-demo-secret-key-2026-very-long-for-hs256}
