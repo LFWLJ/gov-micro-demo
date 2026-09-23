@@ -56,8 +56,7 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
                 ? Collections.emptyList()
                 : authProperties.getWhiteList();
 
-        // 临时日志，确认到底读到了什么
-        log.info("网关鉴权: path={}, whiteList={}", path, whiteList);
+        log.debug("网关鉴权: path={}, whiteList={}", path, whiteList);
 
         boolean isWhite = whiteList.stream().anyMatch(p -> pathMatcher.match(p, path));
         if (isWhite) {
@@ -108,9 +107,10 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String msg) {
         ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.OK);   // 网关层用 200 返回，业务错误用 code 表达
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"code\":401,\"msg\":\"" + msg + "\",\"data\":null}";
+        String safeMsg = msg == null ? "" : msg.replace("\"", "\\\"").replace("<", "&lt;").replace(">", "&gt;");
+        String body = "{\"code\":401,\"msg\":\"" + safeMsg + "\",\"data\":null}";
         DataBuffer buffer = response.bufferFactory()
                 .wrap(body.getBytes(StandardCharsets.UTF_8));
         return response.writeWith(Mono.just(buffer));
