@@ -88,20 +88,24 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
 
         String blacklistKey = "token:blacklist:" + auth.substring(7);
 
+        String traceId = exchange.getRequest().getHeaders().getFirst("X-Trace-Id");
+
         return reactiveRedis.hasKey(blacklistKey)
                 .flatMap(isBlacklisted -> {
                     if (Boolean.TRUE.equals(isBlacklisted)) {
                         return unauthorized(exchange, "Token 已失效，请重新登录");
                     }
                     // 5. 不在黑名单，注入用户上下文
-                    ServerHttpRequest request = exchange.getRequest().mutate()
+                    ServerHttpRequest.Builder builder = exchange.getRequest().mutate()
                             .header("X-User-Id", uid == null ? "" : uid)
                             .header("X-Tenant-Id", tid == null ? "" : tid)
                             .header("X-Roles", roles == null ? "" : roles)
                             .header("X-Dept-Id", did == null ? "" : did)
-                            .header("X-Data-Scope", ds == null ? "3" : String.valueOf(ds))
-                            .build();
-                    return chain.filter(exchange.mutate().request(request).build());
+                            .header("X-Data-Scope", ds == null ? "3" : String.valueOf(ds));
+                    if (traceId != null && !traceId.isEmpty()) {
+                        builder.header("X-Trace-Id", traceId);
+                    }
+                    return chain.filter(exchange.mutate().request(builder.build()).build());
                 });
     }
 
