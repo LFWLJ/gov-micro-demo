@@ -7,6 +7,7 @@ import feign.RequestTemplate;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -30,12 +31,14 @@ public class FeignTokenInterceptor {
                     relay(template, request, "X-User-Id");
                     relay(template, request, "X-Tenant-Id");
                     relay(template, request, "X-Roles");
+                    relay(template, request, "X-Trace-Id");
                     return;
                 }
 
                 String tenantId = TenantContext.get();
                 String userId = UserContext.getUserId();
                 String userTenant = UserContext.getTenantId();
+                String traceId = MDC.get("traceId");
 
                 boolean hasContext = false;
                 if (tenantId != null && !tenantId.isEmpty()) {
@@ -48,6 +51,9 @@ public class FeignTokenInterceptor {
                 if (userId != null && !userId.isEmpty()) {
                     template.header("X-User-Id", userId);
                     hasContext = true;
+                }
+                if (traceId != null && !traceId.isEmpty()) {
+                    template.header("X-Trace-Id", traceId);
                 }
                 if (!hasContext) {
                     log.warn("Feign 调用时既无 RequestContextHolder 也无 TenantContext/UserContext, " +
