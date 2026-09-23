@@ -3,6 +3,7 @@ package com.gov.auth.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.gov.auth.entity.SysUser;
 import com.gov.auth.mapper.SysUserMapper;
+import com.gov.common.redis.RedisKeys;
 import com.gov.common.redis.RedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,10 +38,8 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private static final String USER_CACHE_PREFIX = "user:info:";
-
     public SysUser findByUsername(String username) {
-        String cacheKey = USER_CACHE_PREFIX + username;
+        String cacheKey = RedisKeys.userCache(username);
 
         Object cached = redisService.get(cacheKey);
         if (cached instanceof SysUser) {
@@ -73,7 +72,7 @@ public class UserService {
         if (!user.getPassword().startsWith("$2a$") && password.equals(user.getPassword())) {
             user.setPassword(passwordEncoder.encode(password));
             sysUserMapper.updateById(user);
-            redisService.delete(USER_CACHE_PREFIX + username);
+            redisService.delete(RedisKeys.userCache(username));
             return user;
         }
 
@@ -184,7 +183,7 @@ public class UserService {
         sysUserMapper.updateById(user);
 
         // 清缓存
-        redisService.delete(USER_CACHE_PREFIX + user.getUsername());
+        redisService.delete(RedisKeys.userCache(user.getUsername()));
     }
 
     /**
@@ -197,8 +196,7 @@ public class UserService {
         }
         user.setRealName(realName);
         sysUserMapper.updateById(user);
-        // 清缓存
-        redisService.delete(USER_CACHE_PREFIX + user.getUsername());
+        redisService.delete(RedisKeys.userCache(user.getUsername()));
     }
 
 
@@ -214,7 +212,7 @@ public class UserService {
             throw new BizException("admin 不允许删除");
         }
         sysUserMapper.deleteById(id);
-        redisService.delete(USER_CACHE_PREFIX + user.getUsername());
+        redisService.delete(RedisKeys.userCache(user.getUsername()));
     }
 
     /**
@@ -241,7 +239,7 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
-        redisService.delete(USER_CACHE_PREFIX + user.getUsername());
+        redisService.delete(RedisKeys.userCache(user.getUsername()));
     }
 
     /**
@@ -257,6 +255,6 @@ public class UserService {
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
-        redisService.delete(USER_CACHE_PREFIX + user.getUsername());
+        redisService.delete(RedisKeys.userCache(user.getUsername()));
     }
 }
