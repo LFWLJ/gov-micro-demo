@@ -30,3 +30,9 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}, tenant=%X{tenantId:-}] %logger{36} - %msg%n"
+  level:
+    com.gov: info
