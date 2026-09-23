@@ -22,8 +22,8 @@ spring:
 
 gov:
   jwt:
-    secret: gov-micro-demo-secret-key-2026-very-long-for-hs256
-    expire: 7200
+    secret: ${GOV_JWT_SECRET:gov-micro-demo-secret-key-2026-very-long-for-hs256}
+    expire: 43200
 
 
 knife4j:

@@ -95,7 +95,7 @@ spring:
       port: 6379
 gov:
   jwt:
-    secret: gov-micro-demo-secret-key-2026-very-long-for-hs256
+    secret: ${GOV_JWT_SECRET:gov-micro-demo-secret-key-2026-very-long-for-hs256}
 gateway:
   auth:
     white-list:
