@@ -6,6 +6,7 @@ import com.gov.auth.mapper.SysUserMapper;
 import com.gov.common.redis.RedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.gov.auth.dto.UserSaveDTO;
@@ -32,6 +33,9 @@ public class UserService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private static final String USER_CACHE_PREFIX = "user:info:";
 
@@ -61,7 +65,7 @@ public class UserService {
         SysUser user = findByUsername(username);
         if (user == null) return null;
         if (user.getStatus() == null || user.getStatus() != 1) return null;
-        if (!password.equals(user.getPassword())) return null;
+        if (!passwordEncoder.matches(password, user.getPassword())) return null;
         return user;
     }
 
@@ -137,7 +141,7 @@ public class UserService {
 
         SysUser user = new SysUser();
         user.setUsername(dto.getUsername());
-        user.setPassword(dto.getPassword());     // 生产环境用 BCrypt
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setRealName(dto.getRealName());
         user.setTenantId(TenantContext.get());
         user.setRoles(dto.getRoles() == null ? "ROLE_USER" : dto.getRoles());
@@ -217,15 +221,14 @@ public class UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
-        // 明文比对（生产环境用 BCrypt）
-        if (!oldPassword.equals(user.getPassword())) {
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new BizException("原密码错误");
         }
         if (oldPassword.equals(newPassword)) {
             throw new BizException("新密码不能与原密码相同");
         }
 
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
         redisService.delete(USER_CACHE_PREFIX + user.getUsername());
     }
@@ -241,7 +244,7 @@ public class UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
         redisService.delete(USER_CACHE_PREFIX + user.getUsername());
     }
