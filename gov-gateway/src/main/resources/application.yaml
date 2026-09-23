@@ -16,6 +16,14 @@ spring:
         username: nacos
         password: 7PkhQ0b92nUU
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
       routes:
         - id: gov-auth
           uri: lb://gov-auth
@@ -99,6 +107,5 @@ gov:
 gateway:
   auth:
     white-list:
-      - /api/auth/login
       - /api/auth/login
       - /api/license/verify/**
