@@ -12,6 +12,8 @@ import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.history.HistoricTaskInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ProcessBizService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProcessBizService.class);
 
     private static final String KEY_LEAVE_APPROVAL = "leaveApproval";
 
@@ -206,8 +210,7 @@ public class ProcessBizService {
                     }
                 }
             } catch (Exception e) {
-                // 回调失败不影响主流程
-                // 生产环境可记 warn 日志
+                log.error("流程结束回调失败, processInstanceId={}, 办件状态可能未更新, 需人工补偿", processInstanceId, e);
             }
         }
     }
