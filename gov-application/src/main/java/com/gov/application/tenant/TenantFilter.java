@@ -6,16 +6,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import com.gov.common.tenant.TenantContext;
 
 import java.io.IOException;
 
-/**
- * 从请求头 X-Tenant-Id 解析租户，放入 ThreadLocal
- * 网关已经校验过 Token 并注入过这个头，这里只负责取用
- */
 @Component
 @Order(1)
 public class TenantFilter implements Filter {
@@ -30,14 +27,13 @@ public class TenantFilter implements Filter {
         String userId = req.getHeader("X-User-Id");
         try {
             TenantContext.set(tenantId);
+            if (tenantId != null) MDC.put("tenantId", tenantId);
             DataScopeContext.set(userId, deptId, dataScope);
             chain.doFilter(request, response);
         } finally {
-            // 一定要清理，避免线程复用导致串租户
             TenantContext.clear();
+            MDC.remove("tenantId");
             DataScopeContext.clear();
         }
     }
-
-
 }
