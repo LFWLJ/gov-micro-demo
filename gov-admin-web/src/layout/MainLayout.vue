@@ -33,6 +33,10 @@
           <el-icon><StarFilled /></el-icon>
           <span>好差评</span>
         </el-menu-item>
+        <el-menu-item index="/consult">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>咨询投诉</span>
+        </el-menu-item>
         <el-menu-item index="/license">
           <el-icon><Postcard /></el-icon>
           <span>电子证照</span>
@@ -48,6 +52,10 @@
         <el-menu-item index="/operlog">
           <el-icon><Tickets /></el-icon>
           <span>操作日志</span>
+        </el-menu-item>
+        <el-menu-item index="/loginlog">
+          <el-icon><Key /></el-icon>
+          <span>登录日志</span>
         </el-menu-item>
         <el-menu-item index="/dict">
           <el-icon><Notebook /></el-icon>

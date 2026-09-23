@@ -2,6 +2,7 @@ package com.gov.auth.controller;
 
 import com.gov.api.dto.UserDTO;
 import com.gov.auth.entity.SysUser;
+import com.gov.auth.service.LoginLogService;
 import com.gov.auth.service.UserService;
 import com.gov.auth.util.JwtUtil;
 import com.gov.common.log.OpLog;
@@ -13,6 +14,7 @@ import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,25 +32,34 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private LoginLogService loginLogService;
 
-    @Operation(summary = "登录", description = "用户名密码登录，返回 JWT Token")
+
+    @Operation(summary = "登录")
     @PostMapping("/login")
     @OpLog(module = "认证中心", operation = "用户登录", saveParams = false)
-    public R<Map<String, Object>> login(@RequestBody Map<String, String> body) {
+    public R<Map<String, Object>> login(@RequestBody Map<String, String> body,
+                                        HttpServletRequest request) {
         String username = body.get("username");
         String password = body.get("password");
 
         SysUser user = userService.login(username, password);
+
         if (user == null) {
+            // ★ 记录失败日志
+            loginLogService.record(username, null, "用户名或密码错误", false, request);
             throw new BizException(ResultCode.LOGIN_FAILED);
         }
 
+        // ★ 记录成功日志
+        loginLogService.record(username, user.getTenantId(), "登录成功", true, request);
+
+        // ... 原来的逻辑不变（生成 token、返回）
         String token = jwtUtil.createToken(
                 String.valueOf(user.getId()),
                 user.getTenantId(),
-                user.getRoles(),
-                user.getDeptId(),
-                user.getDataScope()
+                user.getRoles()
         );
 
         Map<String, Object> data = new HashMap<>();

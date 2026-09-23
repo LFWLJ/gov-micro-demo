@@ -115,6 +115,18 @@ const routes = [
         component: () => import('../views/Profile.vue'),
         meta: { title: '个人中心' }
       },
+      {
+        path: 'consult',
+        name: 'Consult',
+        component: () => import('../views/Consult.vue'),
+        meta: { title: '咨询投诉' }
+      },
+      {
+        path: 'loginlog',
+        name: 'LoginLog',
+        component: () => import('../views/LoginLog.vue'),
+        meta: { title: '登录日志' }
+      },
       
     ]
   }

@@ -81,6 +81,14 @@ spring:
           uri: lb://gov-application
           predicates:
             - Path=/api/notify/**
+        - id: gov-consult
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/consult/**
+        - id: gov-workspace
+          uri: lb://gov-application
+          predicates:
+            - Path=/api/workspace/**
   data:
     redis:
       host: 127.0.0.1

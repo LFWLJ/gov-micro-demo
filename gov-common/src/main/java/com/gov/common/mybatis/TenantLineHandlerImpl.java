@@ -7,12 +7,17 @@ import net.sf.jsqlparser.expression.StringValue;
 
 public class TenantLineHandlerImpl implements TenantLineHandler {
 
-    /** 不需要加租户条件的表（全局字典等） */
+
     private static final java.util.Set<String> IGNORE_TABLES = java.util.Set.of(
             "sys_user",
             "sys_tenant",
             "sys_dict",
-            "sys_config"
+            "sys_dict_type",
+            "sys_config",
+            "sys_login_log",
+            "ACT_GE_BYTEARRAY"
+            // ... 其他 ACT_ 表
+
     );
 
     @Override
