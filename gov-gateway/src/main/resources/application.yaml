@@ -21,6 +21,8 @@ spring:
         password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
         file-extension: yaml
         refresh-enabled: true
+        import-check:
+          enabled: false
         extension-configs:
           - data-id: gateway-routes.yaml
             group: DEFAULT_GROUP
@@ -38,19 +40,7 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
-      routes:
-        - id: gov-auth
-          uri: lb://gov-auth
-          predicates:
-            - Path=/api/auth/**
-        - id: gov-file
-          uri: lb://gov-file
-          predicates:
-            - Path=/api/file/**
-        - id: gov-application
-          uri: lb://gov-application
-          predicates:
-            - Path=/api/application/**,/api/process/**,/api/operlog/**,/api/dashboard/**,/api/dept/**,/api/screen/**,/api/report/**,/api/evaluation/**,/api/license/**,/api/dict/**,/api/config/**,/api/guide/**,/api/appointment/**,/api/notify/**,/api/consult/**,/api/workspace/**
+      # routes 由 Nacos 的 gateway-routes.yaml 提供
   data:
     redis:
       host: ${GOV_REDIS_HOST:127.0.0.1}
