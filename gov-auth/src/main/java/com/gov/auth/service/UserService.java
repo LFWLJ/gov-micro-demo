@@ -65,8 +65,19 @@ public class UserService {
         SysUser user = findByUsername(username);
         if (user == null) return null;
         if (user.getStatus() == null || user.getStatus() != 1) return null;
-        if (!passwordEncoder.matches(password, user.getPassword())) return null;
-        return user;
+
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            return user;
+        }
+
+        if (!user.getPassword().startsWith("$2a$") && password.equals(user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(password));
+            sysUserMapper.updateById(user);
+            redisService.delete(USER_CACHE_PREFIX + username);
+            return user;
+        }
+
+        return null;
     }
 
     /**

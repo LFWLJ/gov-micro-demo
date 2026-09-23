@@ -435,13 +435,13 @@ INSERT INTO sys_dept (tenant_id, parent_id, dept_name, order_num, status) VALUES
 INSERT INTO sys_dept (tenant_id, parent_id, dept_name, order_num, status) VALUES
     ('tenant_b', 0, 'B市政府', 1, 1);
 
--- -------------------- 用户（密码均为 123456） --------------------
+-- -------------------- 用户（密码均为 123456，已 BCrypt 加密 cost=10） --------------------
 INSERT INTO sys_user (username, password, real_name, tenant_id, roles, dept_id, data_scope, status) VALUES
-                                                                                                        ('admin',       '123456', '市级管理员', 'tenant_a', 'ROLE_ADMIN', 1, 1, 1),
-                                                                                                        ('user',        '123456', '普通办事员', 'tenant_a', 'ROLE_USER',  4, 3, 1),
-                                                                                                        ('dept_leader', '123456', '财政局局长', 'tenant_a', 'ROLE_ADMIN', 2, 2, 1),
-                                                                                                        ('clerk',       '123456', '预算科科员', 'tenant_a', 'ROLE_USER',  4, 3, 1),
-                                                                                                        ('gov_b_admin', '123456', 'B市管理员',  'tenant_b', 'ROLE_ADMIN', 6, 1, 1);
+                                                                                                        ('admin',       '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '市级管理员', 'tenant_a', 'ROLE_ADMIN', 1, 1, 1),
+                                                                                                        ('user',        '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '普通办事员', 'tenant_a', 'ROLE_USER',  4, 3, 1),
+                                                                                                        ('dept_leader', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '财政局局长', 'tenant_a', 'ROLE_ADMIN', 2, 2, 1),
+                                                                                                        ('clerk',       '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '预算科科员', 'tenant_a', 'ROLE_USER',  4, 3, 1),
+                                                                                                        ('gov_b_admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'B市管理员',  'tenant_b', 'ROLE_ADMIN', 6, 1, 1);
 
 -- -------------------- 事项 --------------------
 INSERT INTO t_application (tenant_id, dept_id, create_by, title, applicant, status) VALUES
