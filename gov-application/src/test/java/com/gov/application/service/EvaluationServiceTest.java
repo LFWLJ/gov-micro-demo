@@ -4,6 +4,7 @@ import com.gov.application.entity.Evaluation;
 import com.gov.application.entity.Rectify;
 import com.gov.application.mapper.EvaluationMapper;
 import com.gov.application.mapper.RectifyMapper;
+import com.gov.application.service.impl.EvaluationServiceImpl;
 import com.gov.common.exception.BizException;
 import com.gov.common.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +27,7 @@ class EvaluationServiceTest {
     private RectifyMapper rectifyMapper;
 
     @InjectMocks
-    private EvaluationService evaluationService;
+    private EvaluationServiceImpl evaluationService;
 
     private AutoCloseable closeable;
 
