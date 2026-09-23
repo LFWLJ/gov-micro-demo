@@ -1,10 +1,13 @@
 package com.gov.application.mq;
 
+import com.gov.common.tenant.TenantContext;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Component
 @RocketMQMessageListener(
@@ -15,35 +18,37 @@ public class NotifyConsumer implements RocketMQListener<NotifyMessage> {
 
     private static final Logger log = LoggerFactory.getLogger(NotifyConsumer.class);
 
+    private static final Map<String, String> TYPE_PREFIX = Map.of(
+            "TASK_CREATED", "您有新的待办：",
+            "TASK_COMPLETED", "您的任务已完成：",
+            "PROCESS_APPROVED", "您的办件已通过：",
+            "EVALUATION_INVITE", "请对本次服务进行评价：",
+            "CONSULT_CREATED", "有新的咨询投诉待处理："
+    );
+
     @Override
     public void onMessage(NotifyMessage msg) {
-        log.info("【通知消费】type={}, bizId={}, receiver={}, content={}",
-                msg.getType(), msg.getBizId(), msg.getReceiver(), msg.getContent());
+        try {
+            if (msg.getTenantId() != null) {
+                TenantContext.set(msg.getTenantId());
+            }
+            log.info("【通知消费】type={}, bizId={}, receiver={}, content={}",
+                    msg.getType(), msg.getBizId(), msg.getReceiver(), msg.getContent());
 
-        switch (msg.getType()) {
-            case "TASK_CREATED":
-                sendSms(msg.getReceiver(), "您有新的待办：" + msg.getContent());
-                break;
-            case "TASK_COMPLETED":
-                sendSms(msg.getReceiver(), "您的任务已完成：" + msg.getContent());
-                break;
-            case "PROCESS_APPROVED":
-                sendSms(msg.getReceiver(), "您的办件已通过：" + msg.getContent());
-                break;
-            case "EVALUATION_INVITE":
-                sendSms(msg.getReceiver(), "请对本次服务进行评价：" + msg.getContent());
-                break;
-            case "CONSULT_CREATED":
-                sendSms(msg.getReceiver(), "有新的咨询投诉待处理：" + msg.getContent());
-                break;
-            default:
+            String prefix = TYPE_PREFIX.get(msg.getType());
+            if (prefix != null) {
+                sendSms(msg.getReceiver(), prefix + msg.getContent());
+            } else {
                 log.warn("未知通知类型: {}", msg.getType());
+            }
+        } catch (Exception e) {
+            log.error("通知消费异常, type={}, tenantId={}", msg.getType(), msg.getTenantId(), e);
+        } finally {
+            TenantContext.clear();
         }
     }
 
-    /** 模拟发短信 */
     private void sendSms(String receiver, String content) {
         log.info(">>> 【模拟短信】 发送给 {}: {}", receiver, content);
-        // 真实场景：调用短信网关 API
     }
 }
