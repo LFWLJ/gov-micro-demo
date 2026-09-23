@@ -5,6 +5,9 @@ spring:
     name: gov-gateway
     main:
       web-application-type: reactive
+  config:
+    import:
+      - optional:nacos:gateway-routes.yaml
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -21,12 +24,6 @@ spring:
         password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
         file-extension: yaml
         refresh-enabled: true
-        import-check:
-          enabled: false
-        extension-configs:
-          - data-id: gateway-routes.yaml
-            group: DEFAULT_GROUP
-            refresh: true
     gateway:
       discovery:
         locator:
@@ -40,7 +37,6 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
-      # routes 由 Nacos 的 gateway-routes.yaml 提供
   data:
     redis:
       host: ${GOV_REDIS_HOST:127.0.0.1}
