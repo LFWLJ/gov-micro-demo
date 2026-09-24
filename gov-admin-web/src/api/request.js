@@ -17,10 +17,14 @@ api.interceptors.request.use(cfg => {
 api.interceptors.response.use(
   res => res.data,
   err => {
-    if (err.response && err.response.status === 401) {
+    const status = err.response?.status
+    if (status === 401) {
       localStorage.clear()
       ElMessage.error('登录已失效，请重新登录')
       window.location.href = '/login'
+    } else if (status === 403) {
+      ElMessage.error('无权限访问')
+      window.location.href = '/403'
     } else {
       ElMessage.error(err.message || '网络错误')
     }

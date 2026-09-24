@@ -29,6 +29,20 @@ const routes = [
     component: MainLayout,
     redirect: '/dashboard',
     children: []
+  },
+  // ↓ 新增：403
+  {
+    path: '/403',
+    name: 'Forbidden',
+    component: () => import('../views/403.vue'),
+    meta: { title: '无权限' }
+  },
+  // ↓ 新增：404 catch-all（必须放最后）
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/404.vue'),
+    meta: { title: '页面不存在' }
   }
 ]
 
@@ -37,7 +51,7 @@ const router = createRouter({
   routes
 })
 
-const WHITE_LIST = ['/login', '/screen', '/verify']
+const WHITE_LIST = ['/login', '/screen', '/verify', '/403', '/404']
 
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
