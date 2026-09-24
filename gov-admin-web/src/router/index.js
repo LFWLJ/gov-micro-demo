@@ -66,12 +66,18 @@ const routes = [
         component: () => import('../views/Dept.vue'),
         meta: { title: '部门管理' }
       },
-      // ↓ 新增菜单管理
       {
         path: 'menu',
         name: 'Menu',
         component: () => import('../views/Menu.vue'),
         meta: { title: '菜单管理' }
+      },
+      // ↓ 新增角色管理
+      {
+        path: 'role',
+        name: 'Role',
+        component: () => import('../views/Role.vue'),
+        meta: { title: '角色管理' }
       },
       // ↑ 新增结束
       {
