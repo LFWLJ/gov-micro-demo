@@ -1,5 +1,6 @@
 package com.gov.file.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.gov.common.exception.BizException;
 import com.gov.common.redis.RedisService;
 import com.gov.file.config.MinioProperties;
@@ -8,6 +9,8 @@ import com.gov.file.mapper.FileInfoMapper;
 import com.gov.file.service.FileService;
 import io.minio.*;
 import io.minio.http.Method;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class FileServiceImpl implements FileService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileServiceImpl.class);
 
     @Autowired
     private MinioClient minioClient;
@@ -110,11 +115,21 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public void delete(String objectName) {
+        // 1. 删数据库记录（先删库，避免 MinIO 删了库没删的脏数据）
+        int deleted = fileInfoMapper.delete(
+                new LambdaQueryWrapper<FileInfo>()
+                        .eq(FileInfo::getObjectName, objectName));
+        log.info("删除文件记录: objectName={}, affected={}", objectName, deleted);
+
+        // 2. 删 MinIO 对象（对象可能已不存在，失败不阻塞）
         try {
             minioClient.removeObject(
-                    RemoveObjectArgs.builder().bucket(props.getBucket()).object(objectName).build());
+                    RemoveObjectArgs.builder()
+                            .bucket(props.getBucket())
+                            .object(objectName)
+                            .build());
         } catch (Exception e) {
-            throw new BizException("文件删除失败: " + e.getMessage());
+            log.warn("删除 MinIO 对象失败: {}", objectName, e);
         }
     }
 }
