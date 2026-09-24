@@ -7,17 +7,17 @@ const routes = [
     name: 'Login',
     component: () => import('../views/Login.vue')
   },
-    {
+  {
     path: '/screen',
     name: 'BigScreen',
     component: () => import('../views/BigScreen.vue'),
     meta: { title: '数据大屏' }
   },
   {
-      path: '/verify',
-      name: 'Verify',
-      component: () => import('../views/Verify.vue'),
-      meta: { title: '证照验真' }
+    path: '/verify',
+    name: 'Verify',
+    component: () => import('../views/Verify.vue'),
+    meta: { title: '证照验真' }
   },
   {
     path: '/',
@@ -61,30 +61,38 @@ const routes = [
         meta: { title: '用户管理' }
       },
       {
-        path:'dept',
-        name:'Dept',
+        path: 'dept',
+        name: 'Dept',
         component: () => import('../views/Dept.vue'),
-        meta: {title: '部门管理'}
+        meta: { title: '部门管理' }
       },
-        {
+      // ↓ 新增菜单管理
+      {
+        path: 'menu',
+        name: 'Menu',
+        component: () => import('../views/Menu.vue'),
+        meta: { title: '菜单管理' }
+      },
+      // ↑ 新增结束
+      {
         path: 'report',
         name: 'Report',
         component: () => import('../views/Report.vue'),
         meta: { title: '统计报表' }
       },
-       {
+      {
         path: 'license',
         name: 'License',
         component: () => import('../views/License.vue'),
         meta: { title: '电子证照' }
       },
-        {
+      {
         path: 'dict',
         name: 'Dict',
         component: () => import('../views/Dict.vue'),
         meta: { title: '数据字典' }
       },
-        {
+      {
         path: 'evaluation',
         name: 'Evaluation',
         component: () => import('../views/Evaluation.vue'),
@@ -108,7 +116,7 @@ const routes = [
         component: () => import('../views/Appointment.vue'),
         meta: { title: '预约取号' }
       },
-       {
+      {
         path: 'profile',
         name: 'Profile',
         component: () => import('../views/Profile.vue'),
@@ -126,7 +134,6 @@ const routes = [
         component: () => import('../views/LoginLog.vue'),
         meta: { title: '登录日志' }
       },
-      
     ]
   }
 ]
