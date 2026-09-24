@@ -9,11 +9,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableFeignClients(basePackages = "com.gov.api.feign")
 @SpringBootApplication(scanBasePackages = {"com.gov.auth", "com.gov.common"})
 @EnableDiscoveryClient
-@MapperScan({"com.gov.auth.mapper","com.gov.common.log"})
+@MapperScan("com.gov.auth.mapper")
 public class AuthApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(AuthApplication.class, args);
     }
-
 }
