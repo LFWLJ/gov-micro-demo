@@ -1,16 +1,15 @@
 package com.gov.auth.controller;
 
 import com.gov.auth.dto.UserSaveDTO;
+import com.gov.auth.entity.SysUser;
 import com.gov.auth.service.UserService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import com.gov.auth.entity.SysUser;
-import java.util.Map;
-
 
 import java.util.Map;
 
@@ -32,6 +31,7 @@ public class UserController {
     }
 
     @Operation(summary = "新增用户")
+    @RequiresPerm("sys:user:add")
     @PostMapping
     @OpLog(module = "用户管理", operation = "新增用户", saveParams = false)
     public R<Long> create(@RequestBody UserSaveDTO dto) {
@@ -49,7 +49,6 @@ public class UserController {
         if (user == null) {
             return R.fail(404, "用户不存在");
         }
-        // 脱敏：不返回密码
         user.setPassword(null);
         return R.ok(user);
     }
@@ -85,6 +84,7 @@ public class UserController {
     }
 
     @Operation(summary = "修改用户")
+    @RequiresPerm("sys:user:edit")
     @PutMapping
     @OpLog(module = "用户管理", operation = "修改用户")
     public R<Void> update(@RequestBody UserSaveDTO dto) {
@@ -93,6 +93,7 @@ public class UserController {
     }
 
     @Operation(summary = "删除用户")
+    @RequiresPerm("sys:user:del")
     @DeleteMapping("/{id}")
     @OpLog(module = "用户管理", operation = "删除用户")
     public R<Void> delete(@PathVariable("id") Long id) {
@@ -101,6 +102,7 @@ public class UserController {
     }
 
     @Operation(summary = "重置密码")
+    @RequiresPerm("sys:user:resetPwd")
     @PostMapping("/{id}/reset-password")
     @OpLog(module = "用户管理", operation = "重置密码", saveParams = false)
     public R<Void> resetPassword(@PathVariable("id") Long id,

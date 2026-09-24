@@ -6,6 +6,7 @@ import com.gov.application.dto.AssignUserDTO;
 import com.gov.application.dto.RoleQueryDTO;
 import com.gov.application.entity.SysRole;
 import com.gov.application.service.SysRoleService;
+import com.gov.common.perm.RequiresPerm;    // ← 新增
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,11 +32,11 @@ public class SysRoleController {
     @Operation(summary = "角色详情")
     @GetMapping("/{id}")
     public R<SysRole> detail(@PathVariable("id") Long id) {
-        return R.ok(sysRoleService.pageRoles(new RoleQueryDTO()).getRecords()
-                .stream().filter(r -> r.getId().equals(id)).findFirst().orElse(null));
+        return R.ok(sysRoleService.getById(id));
     }
 
     @Operation(summary = "新增角色")
+    @RequiresPerm("sys:role:add")          // ← 新增
     @PostMapping
     public R<Void> add(@RequestBody SysRole role) {
         sysRoleService.addRole(role);
@@ -43,6 +44,7 @@ public class SysRoleController {
     }
 
     @Operation(summary = "修改角色")
+    @RequiresPerm("sys:role:edit")         // ← 新增
     @PutMapping
     public R<Void> update(@RequestBody SysRole role) {
         sysRoleService.updateRole(role);
@@ -50,6 +52,7 @@ public class SysRoleController {
     }
 
     @Operation(summary = "删除角色")
+    @RequiresPerm("sys:role:del")          // ← 新增
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable("id") Long id) {
         sysRoleService.deleteRole(id);
@@ -63,6 +66,7 @@ public class SysRoleController {
     }
 
     @Operation(summary = "分配菜单")
+    @RequiresPerm("sys:role:assignMenu")   // ← 新增
     @PutMapping("/{id}/menus")
     public R<Void> assignMenus(@PathVariable("id") Long id, @RequestBody AssignMenuDTO dto) {
         sysRoleService.assignMenus(id, dto);
@@ -76,6 +80,7 @@ public class SysRoleController {
     }
 
     @Operation(summary = "分配用户")
+    @RequiresPerm("sys:role:assignUser")   // ← 新增
     @PutMapping("/{id}/users")
     public R<Void> assignUsers(@PathVariable("id") Long id, @RequestBody AssignUserDTO dto) {
         sysRoleService.assignUsers(id, dto);

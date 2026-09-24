@@ -147,11 +147,16 @@ public class UserServiceImpl implements UserService {
             throw new BizException("用户名已存在");
         }
 
+        String tenantId = TenantContext.get();
+        if (!StringUtils.hasText(tenantId)) {
+            throw new BizException("缺少租户标识");
+        }
+
         SysUser user = new SysUser();
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setRealName(dto.getRealName());
-        user.setTenantId(TenantContext.get());
+        user.setTenantId(tenantId);
         user.setRoles(dto.getRoles() == null ? "ROLE_USER" : dto.getRoles());
         user.setDeptId(dto.getDeptId());
         user.setDataScope(dto.getDataScope() == null ? 3 : dto.getDataScope());

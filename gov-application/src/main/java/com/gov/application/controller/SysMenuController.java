@@ -2,6 +2,7 @@ package com.gov.application.controller;
 
 import com.gov.application.entity.SysMenu;
 import com.gov.application.service.SysMenuService;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,6 +38,7 @@ public class SysMenuController {
     }
 
     @Operation(summary = "新增菜单")
+    @RequiresPerm("sys:menu:add")
     @PostMapping
     public R<Void> add(@RequestBody SysMenu menu) {
         sysMenuService.addMenu(menu);
@@ -44,6 +46,7 @@ public class SysMenuController {
     }
 
     @Operation(summary = "修改菜单")
+    @RequiresPerm("sys:menu:edit")
     @PutMapping
     public R<Void> update(@RequestBody SysMenu menu) {
         sysMenuService.updateMenu(menu);
@@ -51,6 +54,7 @@ public class SysMenuController {
     }
 
     @Operation(summary = "删除菜单")
+    @RequiresPerm("sys:menu:del")
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable("id") Long id) {
         sysMenuService.deleteMenu(id);
@@ -62,8 +66,6 @@ public class SysMenuController {
     public R<List<Long>> menuIdsByRole(@PathVariable("roleId") Long roleId) {
         return R.ok(sysMenuService.menuIdsByRole(roleId));
     }
-
-    // ==================== 新增：动态路由 ====================
 
     @Operation(summary = "当前用户的路由菜单树")
     @GetMapping("/routers")

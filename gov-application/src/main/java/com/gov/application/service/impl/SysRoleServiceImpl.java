@@ -118,4 +118,8 @@ public class SysRoleServiceImpl implements SysRoleService {
         List<Long> distinct = dto.getUserIds().stream().distinct().collect(Collectors.toList());
         sysUserRoleMapper.batchInsert(roleId, distinct);
     }
+    @Override
+    public SysRole getById(Long id) {
+        return sysRoleMapper.selectById(id);
+    }
 }

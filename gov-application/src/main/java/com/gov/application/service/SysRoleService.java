@@ -12,6 +12,8 @@ public interface SysRoleService {
 
     IPage<SysRole> pageRoles(RoleQueryDTO query);
 
+    SysRole getById(Long id);        // ← 就是这个，检查有没有
+
     void addRole(SysRole role);
 
     void updateRole(SysRole role);
