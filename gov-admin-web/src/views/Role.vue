@@ -3,7 +3,7 @@
     <template #header>
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span style="font-weight:bold;">角色管理</span>
-        <el-button type="success" @click="openDialog(null)">新增角色</el-button>
+        <el-button v-perm="'sys:role:add'" type="success" @click="openDialog(null)">新增角色</el-button>
       </div>
     </template>
 
@@ -47,15 +47,18 @@
         </template>
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip />
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="操作" width="330" fixed="right">
         <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openDialog(row)">
+          <el-button v-perm="'sys:role:edit'" type="primary" link size="small" @click="openDialog(row)">
             编辑
           </el-button>
-          <el-button type="warning" link size="small" @click="openMenuDialog(row)">
+          <el-button v-perm="'sys:role:assignMenu'" type="warning" link size="small" @click="openMenuDialog(row)">
             分配菜单
           </el-button>
-          <el-button type="danger" link size="small" @click="handleDelete(row)">
+          <el-button v-perm="'sys:role:assignUser'" type="info" link size="small" @click="openUserDialog(row)">
+            分配用户
+          </el-button>
+          <el-button v-perm="'sys:role:del'" type="danger" link size="small" @click="handleDelete(row)">
             删除
           </el-button>
         </template>
@@ -131,6 +134,59 @@
         <el-button type="primary" :loading="menuSubmitting" @click="handleMenuSubmit">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 分配用户弹窗 -->
+    <el-dialog
+      v-model="userDialogVisible"
+      :title="`分配用户 - ${currentRole?.roleName || ''}`"
+      width="780px"
+    >
+      <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <el-button link type="primary" size="small" @click="selectAllUsers">全选</el-button>
+          <el-button link type="primary" size="small" @click="clearAllUsers">清空</el-button>
+          <el-input
+            v-model="userKeyword"
+            placeholder="搜索用户名/姓名"
+            clearable
+            size="small"
+            style="width:200px; margin-left:12px;"
+            @input="filterUsers"
+          />
+        </div>
+        <span style="color:#909399; font-size:12px;">
+          已选 {{ selectedUserCount }} / {{ allUsers.length }}
+        </span>
+      </div>
+
+      <el-table
+        ref="userTableRef"
+        :data="filteredUsers"
+        v-loading="userLoading"
+        row-key="id"
+        border
+        max-height="440"
+        @selection-change="onUserSelectionChange"
+      >
+        <el-table-column type="selection" width="55" reserve-selection />
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="username" label="用户名" min-width="130" />
+        <el-table-column prop="realName" label="姓名" min-width="110" />
+        <el-table-column prop="roles" label="角色" min-width="120" />
+        <el-table-column prop="deptName" label="部门" min-width="150" />
+        <el-table-column label="状态" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.status === 1" type="success" size="small">启用</el-tag>
+            <el-tag v-else type="danger" size="small">禁用</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <template #footer>
+        <el-button @click="userDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="userSubmitting" @click="handleUserSubmit">保存</el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -139,10 +195,13 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   pageRoles, createRole, updateRole, deleteRole,
-  getRoleMenus, assignRoleMenus
+  getRoleMenus, assignRoleMenus,
+  getRoleUsers, assignRoleUsers
 } from '../api/role'
 import { getMenuTree } from '../api/menu'
+import { pageUsers } from '../api/user'
 
+// ========== 角色列表 ==========
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -166,7 +225,7 @@ const form = reactive({
   remark: ''
 })
 
-// ---------- 分配菜单 ----------
+// ========== 分配菜单 ==========
 const menuDialogVisible = ref(false)
 const menuSubmitting = ref(false)
 const menuTree = ref([])
@@ -174,10 +233,23 @@ const menuTreeRef = ref(null)
 const currentRole = ref(null)
 const treeExpandAll = ref(true)
 
+// ========== 分配用户 ==========
+const userDialogVisible = ref(false)
+const userSubmitting = ref(false)
+const userLoading = ref(false)
+const allUsers = ref([])
+const filteredUsers = ref([])
+const userTableRef = ref(null)
+const userKeyword = ref('')
+const selectedUserCount = ref(0)
+const selectedUsers = ref([])
+
+// ---------- 工具函数 ----------
 function dataScopeText(v) {
   return { 1: '全部', 2: '本部门及以下', 3: '本部门', 4: '仅本人' }[v] || '-'
 }
 
+// ---------- 列表加载 ----------
 async function load() {
   loading.value = true
   try {
@@ -255,7 +327,7 @@ async function handleDelete(row) {
   }
 }
 
-// ---------- 分配菜单 ----------
+// ========== 分配菜单 ==========
 async function ensureMenuTree() {
   if (menuTree.value.length > 0) return
   const res = await getMenuTree()
@@ -270,11 +342,8 @@ async function openMenuDialog(row) {
   await ensureMenuTree()
   await nextTick()
 
-  // 拉取已分配的菜单 id
   const res = await getRoleMenus(row.id)
   const assignedIds = (res.data || [])
-
-  // 只回显叶子节点，避免父节点联动勾选所有子节点
   const leafSet = collectLeafIds(menuTree.value)
   const checkedLeaf = assignedIds.filter(id => leafSet.has(id))
 
@@ -295,7 +364,6 @@ function collectLeafIds(nodes, set = new Set()) {
 
 function expandAll() {
   treeExpandAll.value = false
-  // 强制重渲染树以展开
   const nodes = menuTreeRef.value?.store?.nodesMap || {}
   Object.values(nodes).forEach(n => { n.expanded = true })
 }
@@ -338,6 +406,84 @@ async function handleMenuSubmit() {
     }
   } finally {
     menuSubmitting.value = false
+  }
+}
+
+// ========== 分配用户 ==========
+async function openUserDialog(row) {
+  currentRole.value = row
+  userDialogVisible.value = true
+  userKeyword.value = ''
+  selectedUsers.value = []
+  selectedUserCount.value = 0
+
+  userLoading.value = true
+  try {
+    const [userRes, assignedRes] = await Promise.all([
+      pageUsers({ page: 1, size: 999 }),
+      getRoleUsers(row.id)
+    ])
+
+    if (userRes.code === 200) {
+      allUsers.value = userRes.data.records || []
+      filteredUsers.value = [...allUsers.value]
+    }
+    const assignedIds = new Set(assignedRes.data || [])
+
+    // 回显选中
+    await nextTick()
+    userTableRef.value.clearSelection()
+    allUsers.value.forEach(u => {
+      if (assignedIds.has(u.id)) {
+        userTableRef.value.toggleRowSelection(u, true)
+      }
+    })
+  } finally {
+    userLoading.value = false
+  }
+}
+
+function filterUsers() {
+  const kw = userKeyword.value.trim().toLowerCase()
+  if (!kw) {
+    filteredUsers.value = [...allUsers.value]
+  } else {
+    filteredUsers.value = allUsers.value.filter(u =>
+      (u.username || '').toLowerCase().includes(kw) ||
+      (u.realName || '').toLowerCase().includes(kw)
+    )
+  }
+}
+
+function selectAllUsers() {
+  filteredUsers.value.forEach(u => userTableRef.value.toggleRowSelection(u, true))
+}
+
+function clearAllUsers() {
+  userTableRef.value.clearSelection()
+  selectedUsers.value = []
+  selectedUserCount.value = 0
+}
+
+function onUserSelectionChange(selection) {
+  selectedUsers.value = selection
+  selectedUserCount.value = selection.length
+}
+
+async function handleUserSubmit() {
+  const ids = selectedUsers.value.map(u => u.id)
+
+  userSubmitting.value = true
+  try {
+    const res = await assignRoleUsers(currentRole.value.id, ids)
+    if (res.code === 200) {
+      ElMessage.success('分配成功')
+      userDialogVisible.value = false
+    } else {
+      ElMessage.error(res.msg)
+    }
+  } finally {
+    userSubmitting.value = false
   }
 }
 

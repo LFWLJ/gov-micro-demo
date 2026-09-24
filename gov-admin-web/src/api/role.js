@@ -23,3 +23,13 @@ export function getRoleMenus(id) {
 export function assignRoleMenus(id, menuIds) {
   return api.put(`/api/role/${id}/menus`, { menuIds })
 }
+
+// ↓ 新增：查询角色已分配用户ID
+export function getRoleUsers(id) {
+  return api.get(`/api/role/${id}/users`)
+}
+
+// ↓ 新增：分配用户
+export function assignRoleUsers(id, userIds) {
+  return api.put(`/api/role/${id}/users`, { userIds })
+}
