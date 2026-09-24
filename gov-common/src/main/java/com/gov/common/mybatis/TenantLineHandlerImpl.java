@@ -17,11 +17,17 @@ public class TenantLineHandlerImpl implements TenantLineHandler {
             "sys_config",
             "sys_login_log",
             "sys_oper_log",
-            "t_file_info"
+            "t_file_info",
+            // ↓ 新增：角色/菜单关联表（无 tenant_id 列）
+            "sys_menu",
+            "sys_role_menu",
+            "sys_user_role",
+            "sys_role_dept"
     );
 
     private static final Set<String> IGNORE_PREFIXES = Set.of(
             "ACT_",
+            "act_",
             "qrtz_"
     );
 
