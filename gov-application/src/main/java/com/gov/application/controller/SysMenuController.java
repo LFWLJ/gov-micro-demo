@@ -62,4 +62,18 @@ public class SysMenuController {
     public R<List<Long>> menuIdsByRole(@PathVariable("roleId") Long roleId) {
         return R.ok(sysMenuService.menuIdsByRole(roleId));
     }
+
+    // ==================== 新增：动态路由 ====================
+
+    @Operation(summary = "当前用户的路由菜单树")
+    @GetMapping("/routers")
+    public R<List<SysMenu>> routers() {
+        return R.ok(sysMenuService.getRouters());
+    }
+
+    @Operation(summary = "当前用户的按钮权限标识")
+    @GetMapping("/permissions")
+    public R<List<String>> permissions() {
+        return R.ok(sysMenuService.getPermissions());
+    }
 }

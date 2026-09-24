@@ -26,4 +26,10 @@ public interface SysMenuService {
 
     /** 某角色已分配的菜单ID */
     List<Long> menuIdsByRole(Long roleId);
+
+    /** 当前用户的路由菜单树（只含 M/C 类型） */
+    List<SysMenu> getRouters();
+
+    /** 当前用户的按钮权限标识列表（F 类型的 perms） */
+    List<String> getPermissions();
 }

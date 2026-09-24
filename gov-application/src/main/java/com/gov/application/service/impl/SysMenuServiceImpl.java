@@ -4,17 +4,22 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.gov.application.entity.SysMenu;
 import com.gov.application.mapper.SysMenuMapper;
 import com.gov.application.mapper.SysRoleMenuMapper;
+import com.gov.application.mapper.SysUserRoleMapper;
 import com.gov.application.service.SysMenuService;
+import com.gov.application.tenant.DataScopeContext;
 import com.gov.common.exception.BizException;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class SysMenuServiceImpl implements SysMenuService {
@@ -25,24 +30,15 @@ public class SysMenuServiceImpl implements SysMenuService {
     @Resource
     private SysRoleMenuMapper sysRoleMenuMapper;
 
+    @Resource
+    private SysUserRoleMapper sysUserRoleMapper;
+
+    // ==================== 原有方法 ====================
+
     @Override
     public List<SysMenu> menuTree() {
         List<SysMenu> all = listAll();
-        Map<Long, SysMenu> map = new HashMap<>();
-        for (SysMenu m : all) {
-            m.setChildren(new ArrayList<>());
-            map.put(m.getId(), m);
-        }
-        List<SysMenu> roots = new ArrayList<>();
-        for (SysMenu m : all) {
-            Long pid = m.getParentId();
-            if (pid == null || pid == 0L || !map.containsKey(pid)) {
-                roots.add(m);
-            } else {
-                map.get(pid).getChildren().add(m);
-            }
-        }
-        return roots;
+        return buildTree(all);
     }
 
     @Override
@@ -115,5 +111,83 @@ public class SysMenuServiceImpl implements SysMenuService {
     @Override
     public List<Long> menuIdsByRole(Long roleId) {
         return sysRoleMenuMapper.selectMenuIdsByRoleId(roleId);
+    }
+
+    // ==================== 新增：动态路由 ====================
+
+    @Override
+    public List<SysMenu> getRouters() {
+        List<SysMenu> all = currentUserMenus();
+        // 路由树只保留 M（目录）和 C（菜单）
+        List<SysMenu> routeMenus = all.stream()
+                .filter(m -> "M".equals(m.getMenuType()) || "C".equals(m.getMenuType()))
+                .collect(Collectors.toList());
+        return buildTree(routeMenus);
+    }
+
+    @Override
+    public List<String> getPermissions() {
+        return currentUserMenus().stream()
+                .filter(m -> "F".equals(m.getMenuType()))
+                .map(SysMenu::getPerms)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 当前用户被授权的全部菜单（含按钮）
+     * 步骤：userId → roleIds → menuIds → menus
+     */
+    private List<SysMenu> currentUserMenus() {
+        String userIdStr = DataScopeContext.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            return new ArrayList<>();
+        }
+        Long userId;
+        try {
+            userId = Long.parseLong(userIdStr);
+        } catch (NumberFormatException e) {
+            return new ArrayList<>();
+        }
+
+        List<Long> roleIds = sysUserRoleMapper.selectRoleIdsByUserId(userId);
+        if (CollectionUtils.isEmpty(roleIds)) {
+            return new ArrayList<>();
+        }
+
+        // 汇总所有角色的菜单 ID
+        Set<Long> menuIdSet = roleIds.stream()
+                .flatMap(rid -> sysRoleMenuMapper.selectMenuIdsByRoleId(rid).stream())
+                .collect(Collectors.toSet());
+        if (menuIdSet.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return sysMenuMapper.selectList(
+                new LambdaQueryWrapper<SysMenu>()
+                        .in(SysMenu::getId, menuIdSet)
+                        .eq(SysMenu::getStatus, 1)
+                        .orderByAsc(SysMenu::getParentId)
+                        .orderByAsc(SysMenu::getOrderNum));
+    }
+
+    /** 扁平列表转树 */
+    private List<SysMenu> buildTree(List<SysMenu> all) {
+        Map<Long, SysMenu> map = new HashMap<>();
+        for (SysMenu m : all) {
+            m.setChildren(new ArrayList<>());
+            map.put(m.getId(), m);
+        }
+        List<SysMenu> roots = new ArrayList<>();
+        for (SysMenu m : all) {
+            Long pid = m.getParentId();
+            if (pid == null || pid == 0L || !map.containsKey(pid)) {
+                roots.add(m);
+            } else {
+                map.get(pid).getChildren().add(m);
+            }
+        }
+        return roots;
     }
 }

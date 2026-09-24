@@ -27,3 +27,13 @@ export function deleteMenu(id) {
 export function getRoleMenus(roleId) {
   return api.get(`/api/menu/role/${roleId}`)
 }
+
+// ↓ 新增：当前用户路由菜单树
+export function getRouters() {
+  return api.get('/api/menu/routers')
+}
+
+// ↓ 新增：当前用户按钮权限
+export function getPermissions() {
+  return api.get('/api/menu/permissions')
+}

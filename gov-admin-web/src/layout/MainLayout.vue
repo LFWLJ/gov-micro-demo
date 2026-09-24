@@ -10,122 +10,34 @@
         text-color="#fff"
         active-text-color="#60a5fa"
       >
-        <!-- 首页 -->
-        <el-menu-item index="/dashboard">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
+        <template v-for="node in menuTree" :key="node.id">
+          <!-- 目录：M -->
+          <el-sub-menu v-if="node.menuType === 'M'" :index="String(node.id)">
+            <template #title>
+              <el-icon v-if="node.icon"><component :is="node.icon" /></el-icon>
+              <span>{{ node.menuName }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in node.children"
+              :key="child.id"
+              :index="child.path"
+            >
+              <el-icon v-if="child.icon"><component :is="child.icon" /></el-icon>
+              <span>{{ child.menuName }}</span>
+            </el-menu-item>
+          </el-sub-menu>
 
-        <!-- 文件管理 -->
-        <el-menu-item index="/file">
-          <el-icon><Folder /></el-icon>
-          <span>文件管理</span>
-        </el-menu-item>
-
-        <!-- 业务办理 -->
-        <el-sub-menu index="biz">
-          <template #title>
-            <el-icon><Briefcase /></el-icon>
-            <span>业务办理</span>
-          </template>
-          <el-menu-item index="/application">
-            <el-icon><Document /></el-icon>
-            <span>事项管理</span>
+          <!-- 菜单：C -->
+          <el-menu-item v-else-if="node.menuType === 'C'" :index="node.path">
+            <el-icon v-if="node.icon"><component :is="node.icon" /></el-icon>
+            <span>{{ node.menuName }}</span>
           </el-menu-item>
-          <el-menu-item index="/process">
-            <el-icon><Checked /></el-icon>
-            <span>审批流程</span>
-          </el-menu-item>
-          <el-menu-item index="/appointment">
-            <el-icon><Calendar /></el-icon>
-            <span>预约取号</span>
-          </el-menu-item>
-          <el-menu-item index="/license">
-            <el-icon><Postcard /></el-icon>
-            <span>电子证照</span>
-          </el-menu-item>
-          <el-menu-item index="/guide">
-            <el-icon><Memo /></el-icon>
-            <span>办事指南</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 互动服务 -->
-        <el-sub-menu index="interact">
-          <template #title>
-            <el-icon><ChatDotRound /></el-icon>
-            <span>互动服务</span>
-          </template>
-          <el-menu-item index="/evaluation">
-            <el-icon><StarFilled /></el-icon>
-            <span>好差评</span>
-          </el-menu-item>
-          <el-menu-item index="/consult">
-            <el-icon><Message /></el-icon>
-            <span>咨询投诉</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 统计分析 -->
-        <el-sub-menu index="stat">
-          <template #title>
-            <el-icon><DataAnalysis /></el-icon>
-            <span>统计分析</span>
-          </template>
-          <el-menu-item index="/report">
-            <el-icon><PieChart /></el-icon>
-            <span>统计报表</span>
-          </el-menu-item>
-          <el-menu-item index="/screen">
-            <el-icon><Monitor /></el-icon>
-            <span>数据大屏</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 系统管理 -->
-        <el-sub-menu index="system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
-          </template>
-          <el-menu-item index="/user">
-            <el-icon><User /></el-icon>
-            <span>用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/dept">
-            <el-icon><OfficeBuilding /></el-icon>
-            <span>部门管理</span>
-          </el-menu-item>
-          <el-menu-item index="/role">
-            <el-icon><Avatar /></el-icon>
-            <span>角色管理</span>
-          </el-menu-item>
-          <el-menu-item index="/menu">
-            <el-icon><Grid /></el-icon>
-            <span>菜单管理</span>
-          </el-menu-item>
-          <el-menu-item index="/dict">
-            <el-icon><Notebook /></el-icon>
-            <span>数据字典</span>
-          </el-menu-item>
-          <el-menu-item index="/config">
-            <el-icon><Tools /></el-icon>
-            <span>系统配置</span>
-          </el-menu-item>
-          <el-menu-item index="/operlog">
-            <el-icon><Tickets /></el-icon>
-            <span>操作日志</span>
-          </el-menu-item>
-          <el-menu-item index="/loginlog">
-            <el-icon><Key /></el-icon>
-            <span>登录日志</span>
-          </el-menu-item>
-        </el-sub-menu>
+        </template>
       </el-menu>
     </el-aside>
 
     <el-container>
-      <el-header class="header">
+      <el-header class="header">  
         <div style="font-weight:bold; color:#1e3a8a;">
           {{ $route.meta.title || '' }}
         </div>
@@ -209,10 +121,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
+import { usePermissionStore } from '../stores/permission'
 import { logout } from '../api/auth'
 import {
   pageNotifies, getUnreadCount, readNotify, readAllNotify, deleteNotify
@@ -220,7 +133,12 @@ import {
 
 const router = useRouter()
 const userStore = useUserStore()
+const permissionStore = usePermissionStore()
 
+// ↓ 侧边栏菜单树（来自 Pinia）
+const menuTree = computed(() => permissionStore.menuTree)
+
+// 消息状态
 const notifyVisible = ref(false)
 const notifyLoading = ref(false)
 const notifies = ref([])
@@ -241,6 +159,7 @@ async function handleLogout() {
     await logout()
   } catch (e) {}
   userStore.clear()
+  permissionStore.clear()
   ElMessage.success('已退出')
   router.push('/login')
 }

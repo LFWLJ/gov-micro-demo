@@ -6,6 +6,8 @@ export const useUserStore = defineStore('user', () => {
   const realName = ref(localStorage.getItem('realName') || '')
   const tenantId = ref(localStorage.getItem('tenantId') || '')
   const roles = ref(localStorage.getItem('roles') || '')
+  const permissions = ref(JSON.parse(localStorage.getItem('permissions') || '[]'))
+  const routesLoaded = ref(false)
 
   function setUser(data) {
     token.value = data.token
@@ -18,13 +20,27 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('roles', data.roles || '')
   }
 
+  function setPermissions(list) {
+    permissions.value = list || []
+    localStorage.setItem('permissions', JSON.stringify(permissions.value))
+  }
+
+  function setRoutesLoaded(v) {
+    routesLoaded.value = v
+  }
+
   function clear() {
     token.value = ''
     realName.value = ''
     tenantId.value = ''
     roles.value = ''
+    permissions.value = []
+    routesLoaded.value = false
     localStorage.clear()
   }
 
-  return { token, realName, tenantId, roles, setUser, clear }
+  return {
+    token, realName, tenantId, roles, permissions, routesLoaded,
+    setUser, setPermissions, setRoutesLoaded, clear
+  }
 })

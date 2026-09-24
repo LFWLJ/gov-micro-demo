@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '../layout/MainLayout.vue'
+import { useUserStore } from '../stores/user'
+import { usePermissionStore } from '../stores/permission'
+import { getRouters, getPermissions } from '../api/menu'
+import { buildRoutes } from './dynamic'
 
 const routes = [
   {
@@ -21,126 +25,10 @@ const routes = [
   },
   {
     path: '/',
+    name: 'MainLayout',
     component: MainLayout,
     redirect: '/dashboard',
-    children: [
-      {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('../views/Dashboard.vue'),
-        meta: { title: '首页' }
-      },
-      {
-        path: 'application',
-        name: 'Application',
-        component: () => import('../views/Application.vue'),
-        meta: { title: '事项管理' }
-      },
-      {
-        path: 'process',
-        name: 'Process',
-        component: () => import('../views/Process.vue'),
-        meta: { title: '审批流程' }
-      },
-      {
-        path: 'file',
-        name: 'File',
-        component: () => import('../views/File.vue'),
-        meta: { title: '文件管理' }
-      },
-      {
-        path: 'operlog',
-        name: 'OperLog',
-        component: () => import('../views/OperLog.vue'),
-        meta: { title: '操作日志' }
-      },
-      {
-        path: 'user',
-        name: 'User',
-        component: () => import('../views/User.vue'),
-        meta: { title: '用户管理' }
-      },
-      {
-        path: 'dept',
-        name: 'Dept',
-        component: () => import('../views/Dept.vue'),
-        meta: { title: '部门管理' }
-      },
-      {
-        path: 'menu',
-        name: 'Menu',
-        component: () => import('../views/Menu.vue'),
-        meta: { title: '菜单管理' }
-      },
-      // ↓ 新增角色管理
-      {
-        path: 'role',
-        name: 'Role',
-        component: () => import('../views/Role.vue'),
-        meta: { title: '角色管理' }
-      },
-      // ↑ 新增结束
-      {
-        path: 'report',
-        name: 'Report',
-        component: () => import('../views/Report.vue'),
-        meta: { title: '统计报表' }
-      },
-      {
-        path: 'license',
-        name: 'License',
-        component: () => import('../views/License.vue'),
-        meta: { title: '电子证照' }
-      },
-      {
-        path: 'dict',
-        name: 'Dict',
-        component: () => import('../views/Dict.vue'),
-        meta: { title: '数据字典' }
-      },
-      {
-        path: 'evaluation',
-        name: 'Evaluation',
-        component: () => import('../views/Evaluation.vue'),
-        meta: { title: '好差评' }
-      },
-      {
-        path: 'config',
-        name: 'Config',
-        component: () => import('../views/Config.vue'),
-        meta: { title: '系统配置' }
-      },
-      {
-        path: 'guide',
-        name: 'Guide',
-        component: () => import('../views/Guide.vue'),
-        meta: { title: '办事指南' }
-      },
-      {
-        path: 'appointment',
-        name: 'Appointment',
-        component: () => import('../views/Appointment.vue'),
-        meta: { title: '预约取号' }
-      },
-      {
-        path: 'profile',
-        name: 'Profile',
-        component: () => import('../views/Profile.vue'),
-        meta: { title: '个人中心' }
-      },
-      {
-        path: 'consult',
-        name: 'Consult',
-        component: () => import('../views/Consult.vue'),
-        meta: { title: '咨询投诉' }
-      },
-      {
-        path: 'loginlog',
-        name: 'LoginLog',
-        component: () => import('../views/LoginLog.vue'),
-        meta: { title: '登录日志' }
-      },
-    ]
+    children: []
   }
 ]
 
@@ -149,12 +37,49 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  if (to.path !== '/login' && !token) {
-    next('/login')
-  } else {
-    next()
+const WHITE_LIST = ['/login', '/screen', '/verify']
+
+router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore()
+  const permissionStore = usePermissionStore()
+  const token = userStore.token || localStorage.getItem('token')
+
+  if (!token) {
+    if (WHITE_LIST.includes(to.path)) return next()
+    return next('/login')
+  }
+
+  if (to.path === '/login') {
+    return next('/')
+  }
+
+  if (permissionStore.loaded) {
+    return next()
+  }
+
+  try {
+    const [routerRes, permRes] = await Promise.all([getRouters(), getPermissions()])
+
+    if (routerRes.code !== 200) {
+      throw new Error(routerRes.msg || '加载菜单失败')
+    }
+
+    const menuTree = routerRes.data || []
+    permissionStore.setMenuTree(menuTree)
+
+    if (permRes.code === 200) {
+      userStore.setPermissions(permRes.data || [])
+    }
+
+    const dynamicRoutes = buildRoutes(menuTree)
+    dynamicRoutes.forEach(r => router.addRoute('MainLayout', r))
+
+    return next({ ...to, replace: true })
+  } catch (e) {
+    console.error('[router] 加载动态路由失败', e)
+    userStore.clear()
+    permissionStore.clear()
+    return next('/login')
   }
 })
 

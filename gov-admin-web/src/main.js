@@ -7,6 +7,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
 import router from './router/index.js'
+import permission from './directives/permission'
 
 const app = createApp(App)
 
@@ -17,4 +18,8 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
+
+// ↓ 注册按钮权限指令
+app.directive('perm', permission)
+
 app.mount('#app')
