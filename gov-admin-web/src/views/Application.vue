@@ -22,7 +22,7 @@
       </el-table-column>
       <el-table-column prop="deptId" label="部门ID" width="90" />
       <el-table-column prop="createTime" label="创建时间" width="180" />
-      <el-table-column label="操作" width="300" fixed="right">
+      <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <el-button
             type="primary" link size="small"
@@ -37,6 +37,14 @@
           >
             审批进度
           </el-button>
+          <!-- ↓ 新增：附件 -->
+          <el-button
+            type="success" link size="small"
+            @click="showAttachments(row)"
+          >
+            附件
+          </el-button>
+          <!-- ↑ 新增结束 -->
           <el-button
             type="warning" link size="small"
             :disabled="row.status !== 'PENDING'"
@@ -152,6 +160,20 @@
         </el-timeline>
       </div>
     </el-drawer>
+
+    <!-- ↓ 新增：附件弹窗 -->
+    <el-dialog
+      v-model="attachVisible"
+      :title="`附件管理 - ${attachRow?.title || ''}`"
+      width="820px"
+    >
+      <FileUpload
+        v-if="attachRow"
+        biz-type="APPLICATION"
+        :biz-id="attachRow.id"
+      />
+    </el-dialog>
+    <!-- ↑ 新增结束 -->
   </el-card>
 </template>
 
@@ -162,6 +184,8 @@ import {
   listApplications, createApplication, getApplicationTrace,
   getApplicationLogs, rejectApplication, withdrawApplication
 } from '../api/application'
+// ↓ 新增
+import FileUpload from '../components/FileUpload.vue'
 
 const list = ref([])
 const loading = ref(false)
@@ -183,6 +207,10 @@ const traceVisible = ref(false)
 const traceLoading = ref(false)
 const traceData = ref({})
 const currentApp = ref({})
+
+// ↓ 新增：附件
+const attachVisible = ref(false)
+const attachRow = ref(null)
 
 async function load() {
   loading.value = true
@@ -271,6 +299,12 @@ async function handleWithdraw(row) {
   } else {
     ElMessage.error(res.msg)
   }
+}
+
+// ↓ 新增
+function showAttachments(row) {
+  attachRow.value = row
+  attachVisible.value = true
 }
 
 function actionType(action) {

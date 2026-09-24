@@ -18,11 +18,14 @@ public class TenantLineHandlerImpl implements TenantLineHandler {
             "sys_login_log",
             "sys_oper_log",
             "t_file_info",
-            // ↓ 新增：角色/菜单关联表（无 tenant_id 列）
+            "t_file",
+            // ↓ 角色/菜单相关的表都没有 tenant_id 列，必须忽略
             "sys_menu",
             "sys_role_menu",
             "sys_user_role",
-            "sys_role_dept"
+            "sys_role_dept",
+            // ↓ 附件表也没有 tenant_id
+            "t_attachment"
     );
 
     private static final Set<String> IGNORE_PREFIXES = Set.of(
