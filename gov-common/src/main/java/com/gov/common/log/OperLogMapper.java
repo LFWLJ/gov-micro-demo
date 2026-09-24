@@ -4,14 +4,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.mybatis.spring.annotation.MapperScan;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @Mapper
-@MapperScan({"com.gov.application.mapper", "com.gov.common.log"})
 public interface OperLogMapper extends BaseMapper<OperLog> {
 
     @Select("SELECT DATE(create_time) AS day, COUNT(*) AS cnt FROM sys_oper_log " +
