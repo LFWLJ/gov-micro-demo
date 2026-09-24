@@ -5,74 +5,118 @@
       <el-menu
         :default-active="$route.path"
         router
+        unique-opened
         background-color="#1e3a8a"
         text-color="#fff"
         active-text-color="#60a5fa"
       >
+        <!-- 首页 -->
         <el-menu-item index="/dashboard">
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item index="/application">
-          <el-icon><Document /></el-icon>
-          <span>事项管理</span>
-        </el-menu-item>
-        <el-menu-item index="/process">
-          <el-icon><Checked /></el-icon>
-          <span>审批流程</span>
-        </el-menu-item>
-        <el-menu-item index="/guide">
-          <el-icon><Memo /></el-icon>
-          <span>办事指南</span>
-        </el-menu-item>
-        <el-menu-item index="/appointment">
-          <el-icon><Calendar /></el-icon>
-          <span>预约取号</span>
-        </el-menu-item>
-        <el-menu-item index="/evaluation">
-          <el-icon><StarFilled /></el-icon>
-          <span>好差评</span>
-        </el-menu-item>
-        <el-menu-item index="/consult">
-          <el-icon><ChatDotRound /></el-icon>
-          <span>咨询投诉</span>
-        </el-menu-item>
-        <el-menu-item index="/license">
-          <el-icon><Postcard /></el-icon>
-          <span>电子证照</span>
-        </el-menu-item>
-        <el-menu-item index="/report">
-          <el-icon><DataAnalysis /></el-icon>
-          <span>统计报表</span>
-        </el-menu-item>
+
+        <!-- 文件管理 -->
         <el-menu-item index="/file">
           <el-icon><Folder /></el-icon>
           <span>文件管理</span>
         </el-menu-item>
-        <el-menu-item index="/operlog">
-          <el-icon><Tickets /></el-icon>
-          <span>操作日志</span>
-        </el-menu-item>
-        <el-menu-item index="/loginlog">
-          <el-icon><Key /></el-icon>
-          <span>登录日志</span>
-        </el-menu-item>
-        <el-menu-item index="/dict">
-          <el-icon><Notebook /></el-icon>
-          <span>数据字典</span>
-        </el-menu-item>
-        <el-menu-item index="/config">
-          <el-icon><Setting /></el-icon>
-          <span>系统配置</span>
-        </el-menu-item>
-        <el-menu-item index="/dept">
-          <el-icon><OfficeBuilding /></el-icon>
-          <span>部门管理</span>
-        </el-menu-item>
-        <el-menu-item index="/user">
-          <el-icon><User /></el-icon>
-          <span>用户管理</span>
-        </el-menu-item>
+
+        <!-- 业务办理 -->
+        <el-sub-menu index="biz">
+          <template #title>
+            <el-icon><Briefcase /></el-icon>
+            <span>业务办理</span>
+          </template>
+          <el-menu-item index="/application">
+            <el-icon><Document /></el-icon>
+            <span>事项管理</span>
+          </el-menu-item>
+          <el-menu-item index="/process">
+            <el-icon><Checked /></el-icon>
+            <span>审批流程</span>
+          </el-menu-item>
+          <el-menu-item index="/appointment">
+            <el-icon><Calendar /></el-icon>
+            <span>预约取号</span>
+          </el-menu-item>
+          <el-menu-item index="/license">
+            <el-icon><Postcard /></el-icon>
+            <span>电子证照</span>
+          </el-menu-item>
+          <el-menu-item index="/guide">
+            <el-icon><Memo /></el-icon>
+            <span>办事指南</span>
+          </el-menu-item>
+        </el-sub-menu>
+
+        <!-- 互动服务 -->
+        <el-sub-menu index="interact">
+          <template #title>
+            <el-icon><ChatDotRound /></el-icon>
+            <span>互动服务</span>
+          </template>
+          <el-menu-item index="/evaluation">
+            <el-icon><StarFilled /></el-icon>
+            <span>好差评</span>
+          </el-menu-item>
+          <el-menu-item index="/consult">
+            <el-icon><Message /></el-icon>
+            <span>咨询投诉</span>
+          </el-menu-item>
+        </el-sub-menu>
+
+        <!-- 统计分析 -->
+        <el-sub-menu index="stat">
+          <template #title>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>统计分析</span>
+          </template>
+          <el-menu-item index="/report">
+            <el-icon><PieChart /></el-icon>
+            <span>统计报表</span>
+          </el-menu-item>
+          <el-menu-item index="/screen">
+            <el-icon><Monitor /></el-icon>
+            <span>数据大屏</span>
+          </el-menu-item>
+        </el-sub-menu>
+
+        <!-- 系统管理 -->
+        <el-sub-menu index="system">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>系统管理</span>
+          </template>
+          <el-menu-item index="/user">
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/dept">
+            <el-icon><OfficeBuilding /></el-icon>
+            <span>部门管理</span>
+          </el-menu-item>
+          <el-menu-item index="/menu">
+            <el-icon><Grid /></el-icon>
+            <span>菜单管理</span>
+          </el-menu-item>
+          <el-menu-item index="/dict">
+            <el-icon><Notebook /></el-icon>
+            <span>数据字典</span>
+          </el-menu-item>
+          <el-menu-item index="/config">
+            <el-icon><Tools /></el-icon>
+            <span>系统配置</span>
+          </el-menu-item>
+          <el-menu-item index="/operlog">
+            <el-icon><Tickets /></el-icon>
+            <span>操作日志</span>
+          </el-menu-item>
+          <el-menu-item index="/loginlog">
+            <el-icon><Key /></el-icon>
+            <span>登录日志</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -95,12 +139,12 @@
 
           <el-button type="primary" link @click="goScreen">数据大屏</el-button>
 
-                    <span
-                     style="cursor:pointer;"
-                     @click="$router.push('/profile')"
-                   >
-                     {{ userStore.realName }} ({{ userStore.tenantId }})
-                    </span>
+          <span
+            style="cursor:pointer;"
+            @click="$router.push('/profile')"
+          >
+            {{ userStore.realName }} ({{ userStore.tenantId }})
+          </span>
 
           <el-button link type="primary" @click="handleLogout">退出</el-button>
         </div>
@@ -135,20 +179,8 @@
           @click="handleRead(item)"
         >
           <div class="notify-header">
-            <el-tag
-              v-if="item.type === 'TASK'"
-              type="warning"
-              size="small"
-            >
-              待办
-            </el-tag>
-            <el-tag
-              v-else-if="item.type === 'SYSTEM'"
-              type="info"
-              size="small"
-            >
-              系统
-            </el-tag>
+            <el-tag v-if="item.type === 'TASK'" type="warning" size="small">待办</el-tag>
+            <el-tag v-else-if="item.type === 'SYSTEM'" type="info" size="small">系统</el-tag>
             <el-tag v-else size="small">{{ item.type }}</el-tag>
 
             <span class="notify-time">{{ formatTime(item.createTime) }}</span>
@@ -185,7 +217,6 @@ import {
 const router = useRouter()
 const userStore = useUserStore()
 
-// 消息状态
 const notifyVisible = ref(false)
 const notifyLoading = ref(false)
 const notifies = ref([])
@@ -210,19 +241,15 @@ async function handleLogout() {
   router.push('/login')
 }
 
-/** 加载未读数量 */
 async function loadUnreadCount() {
   try {
     const res = await getUnreadCount(userStore.realName)
     if (res.code === 200) {
       unreadCount.value = res.data || 0
     }
-  } catch (e) {
-    // 忽略
-  }
+  } catch (e) {}
 }
 
-/** 打开抽屉 */
 function openNotifyDrawer() {
   notifyVisible.value = true
   notifyPage.value = 1
@@ -231,7 +258,6 @@ function openNotifyDrawer() {
   loadUnreadCount()
 }
 
-/** 加载消息列表 */
 async function loadNotifies() {
   notifyLoading.value = true
   try {
@@ -250,7 +276,6 @@ async function loadNotifies() {
   }
 }
 
-/** 加载更多 */
 async function loadMore() {
   notifyPage.value++
   notifyLoading.value = true
@@ -269,7 +294,6 @@ async function loadMore() {
   }
 }
 
-/** 标记已读 */
 async function handleRead(item) {
   if (item.isRead === 1) return
   await readNotify(item.id, userStore.realName)
@@ -277,7 +301,6 @@ async function handleRead(item) {
   loadUnreadCount()
 }
 
-/** 全部已读 */
 async function handleReadAll() {
   await readAllNotify(userStore.realName)
   ElMessage.success('已全部标记为已读')
@@ -285,7 +308,6 @@ async function handleReadAll() {
   loadUnreadCount()
 }
 
-/** 删除 */
 async function handleDelete(item) {
   await deleteNotify(item.id, userStore.realName)
   ElMessage.success('已删除')
@@ -293,7 +315,6 @@ async function handleDelete(item) {
   loadUnreadCount()
 }
 
-/** 格式化时间 */
 function formatTime(t) {
   if (!t) return ''
   const s = String(t)
@@ -306,7 +327,6 @@ function formatTime(t) {
 
 onMounted(() => {
   loadUnreadCount()
-  // 每 30 秒轮询一次未读数量
   timer = setInterval(loadUnreadCount, 30000)
 })
 
