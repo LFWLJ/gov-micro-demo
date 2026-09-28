@@ -52,3 +52,18 @@ application-local.yaml
 application-dev.yml
 !application-dev-example.yml
 gov-application/src/main/resources/fonts/
+
+
+# Docker
+.env
+docker/mysql/init/*.sql
+
+# Java
+**/target/
+**/*.jar.original
+
+# 前端
+gov-admin-web/node_modules/
+gov-admin-web/dist/
+gov-admin-web/.vite/
+gov-admin-web/.vite-temp/

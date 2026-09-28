@@ -20,6 +20,14 @@ spring:
         username: ${GOV_NACOS_USERNAME:nacos}
         password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
 
+  data:
+    redis:
+      host: ${GOV_REDIS_HOST:127.0.0.1}
+      port: ${GOV_REDIS_PORT:6379}
+      password: ${GOV_REDIS_PASSWORD:}
+      database: 0
+      timeout: 3000ms
+
 gov:
   jwt:
     secret: ${GOV_JWT_SECRET:gov-micro-demo-secret-key-2026-very-long-for-hs256}

@@ -1,0 +1,9 @@
+node_modules
+dist
+.vite
+.vite-temp
+*.log
+npm-debug.log*
+.git
+.idea
+.vscode
