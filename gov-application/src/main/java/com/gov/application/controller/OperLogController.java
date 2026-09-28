@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,7 +37,6 @@ public class OperLogController {
             @RequestParam(value = "userId", required = false) String userId,
             @RequestParam(value = "result", required = false) Integer result) {
 
-        // 确保有租户上下文
         if (TenantContext.get() == null) {
             return R.fail(403, "缺少租户标识");
         }
@@ -65,5 +65,23 @@ public class OperLogController {
         data.put("current", resultPage.getCurrent());
         data.put("size", resultPage.getSize());
         return R.ok(data);
+    }
+
+    @Operation(summary = "操作日志详情")
+    @GetMapping("/{id}")
+    public R<OperLog> detail(@PathVariable("id") Long id) {
+        String tenantId = TenantContext.get();
+        if (tenantId == null) {
+            return R.fail(403, "缺少租户标识");
+        }
+        OperLog log = operLogMapper.selectById(id);
+        if (log == null) {
+            return R.fail(404, "日志不存在");
+        }
+        // 越权检查：只能看自己租户的日志
+        if (!tenantId.equals(log.getTenantId())) {
+            return R.fail(403, "无权限查看");
+        }
+        return R.ok(log);
     }
 }
