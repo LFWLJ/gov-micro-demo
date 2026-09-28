@@ -1,18 +1,17 @@
-# ===================== IDEA 相关 =====================
+# ===================== IDEA =====================
 .idea/
 *.iml
 *.iws
 *.ipr
-target/
-node_modules
 .apt_generated
 .springBeans
 .sts-cache
 rebel.xml
 
-# ===================== Maven 相关 =====================
+# ===================== Maven =====================
 target/
-!pom.xml
+**/target/
+*.jar.original
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.next
@@ -23,17 +22,19 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# ===================== 前端 gov-admin-web =====================
+# ===================== 前端 =====================
+node_modules/
 gov-admin-web/node_modules/
 gov-admin-web/dist/
+gov-admin-web/.vite/
+gov-admin-web/.vite-temp/
 gov-admin-web/.vscode/
 gov-admin-web/.eslintcache
-gov-admin-web/node_modules/
 gov-admin-web/npm-debug.log*
 gov-admin-web/yarn-debug.log*
 gov-admin-web/yarn-error.log*
 
-# ===================== 日志、临时文件 =====================
+# ===================== 日志 / 临时 =====================
 logs/
 *.log
 *.log.*
@@ -42,7 +43,7 @@ logs/
 *.swp
 *.swo
 
-# ===================== 操作系统文件 =====================
+# ===================== 系统 =====================
 .DS_Store
 Thumbs.db
 
@@ -50,20 +51,15 @@ Thumbs.db
 application-local.yml
 application-local.yaml
 application-dev.yml
-!application-dev-example.yml
 gov-application/src/main/resources/fonts/
 
-
-# Docker
+# ===================== Docker =====================
+# .env 含密码，不提交；提供 .env.example 作为模板
 .env
+!.env.example
+
+# 数据库初始化 SQL：
+# 01-init.sql 是项目必需的（否则无法初始化），保留
+# 其他导出的 SQL（含真实数据）不提交
 docker/mysql/init/*.sql
-
-# Java
-**/target/
-**/*.jar.original
-
-# 前端
-gov-admin-web/node_modules/
-gov-admin-web/dist/
-gov-admin-web/.vite/
-gov-admin-web/.vite-temp/
+!docker/mysql/init/01-init.sql
