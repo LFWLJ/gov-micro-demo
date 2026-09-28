@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import MainLayout from '../layout/MainLayout.vue'
 import { useUserStore } from '../stores/user'
 import { usePermissionStore } from '../stores/permission'
@@ -30,28 +30,29 @@ const routes = [
     redirect: '/dashboard',
     children: []
   },
-  // ↓ 新增：403
   {
     path: '/403',
     name: 'Forbidden',
     component: () => import('../views/403.vue'),
     meta: { title: '无权限' }
-  },
-  // ↓ 新增：404 catch-all（必须放最后）
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    component: () => import('../views/404.vue'),
-    meta: { title: '页面不存在' }
   }
+  // ========== 删掉这里的 404通配路由！！不要写在这里 ==========
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 })
 
-const WHITE_LIST = ['/login', '/screen', '/verify', '/403', '/404']
+const WHITE_LIST = ['/login', '/screen', '/verify', '/403']
+
+// 定义404路由，后面动态添加
+const NotFoundRoute = {
+  path: '/:pathMatch(.*)*',
+  name: 'NotFound',
+  component: () => import('../views/404.vue'),
+  meta: { title: '页面不存在' }
+}
 
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
@@ -73,26 +74,29 @@ router.beforeEach(async (to, from, next) => {
 
   try {
     const [routerRes, permRes] = await Promise.all([getRouters(), getPermissions()])
-
     if (routerRes.code !== 200) {
       throw new Error(routerRes.msg || '加载菜单失败')
     }
-
     const menuTree = routerRes.data || []
     permissionStore.setMenuTree(menuTree)
-
     if (permRes.code === 200) {
       userStore.setPermissions(permRes.data || [])
     }
-
     const dynamicRoutes = buildRoutes(menuTree)
     dynamicRoutes.forEach(r => router.addRoute('MainLayout', r))
 
+    // ✅ 全部动态路由添加完毕后，再添加404兜底路由！
+    router.addRoute(NotFoundRoute)
+
+    permissionStore.loaded = true
+    // 重新进入当前路由，此时路由表已经完整
     return next({ ...to, replace: true })
   } catch (e) {
     console.error('[router] 加载动态路由失败', e)
     userStore.clear()
     permissionStore.clear()
+    // 接口失败也要加上404路由
+    router.addRoute(NotFoundRoute)
     return next('/login')
   }
 })
