@@ -6,6 +6,7 @@ import com.gov.application.service.ApplicationBizService;
 import com.gov.application.service.ProcessBizService;
 import com.gov.common.tenant.TenantContext;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -68,6 +69,7 @@ public class HelloController {
     }
 
     @Operation(summary = "创建事项（自动发起流程）")
+    @RequiresPerm("biz:application:add")
     @PostMapping("/create")
     @OpLog(module = "事项管理", operation = "创建事项")
     public R<Long> create(@RequestBody Map<String, Object> body) {
@@ -132,6 +134,7 @@ public class HelloController {
     }
 
     @Operation(summary = "驳回事项")
+    @RequiresPerm("biz:application:approve")
     @PostMapping("/{id}/reject")
     @OpLog(module = "事项管理", operation = "驳回事项")
     public R<Void> reject(@PathVariable("id") Long id,
@@ -141,6 +144,7 @@ public class HelloController {
     }
 
     @Operation(summary = "撤回事项")
+    @RequiresPerm("biz:application:add")
     @PostMapping("/{id}/withdraw")
     @OpLog(module = "事项管理", operation = "撤回事项")
     public R<Void> withdraw(@PathVariable("id") Long id,

@@ -212,6 +212,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import {
+  Clock, Document, Bell, Tickets, Checked, Memo,
+  Calendar, StarFilled, Postcard, DataAnalysis, Folder
+} from '@element-plus/icons-vue'
 import { getWorkspaceSummary } from '../api/workspace'
 import { getDashboardStats } from '../api/dashboard'
 import { useUserStore } from '../stores/user'

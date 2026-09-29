@@ -100,7 +100,7 @@
         <el-timeline v-if="logs.length > 0">
           <el-timeline-item
             v-for="(log, idx) in logs"
-            :key="idx"
+            :key="log.id ?? log.createTime ?? idx"
             :timestamp="log.createTime"
             :type="actionType(log.action)"
             placement="top"
@@ -137,7 +137,7 @@
         <el-timeline>
           <el-timeline-item
             v-for="(node, idx) in (traceData.nodes || [])"
-            :key="idx"
+            :key="node.id ?? node.taskId ?? idx"
             :type="node.status === 'DONE' ? 'success' : 'primary'"
             :hollow="node.status === 'PENDING'"
             :timestamp="node.startTime"
@@ -277,11 +277,14 @@ async function showTrace(row) {
 }
 
 async function handleReject(row) {
-  const { value } = await ElMessageBox.prompt('请输入驳回原因', '驳回', {
+  // ElMessageBox 点「取消」会 reject，必须捕获，否则既抛未处理拒绝又会让后面代码不执行
+  const result = await ElMessageBox.prompt('请输入驳回原因', '驳回', {
     inputType: 'textarea',
     inputPlaceholder: '如材料不全、不符合条件'
-  })
-  const res = await rejectApplication(row.id, value)
+  }).catch(() => null)
+  if (!result) return
+
+  const res = await rejectApplication(row.id, result.value)
   if (res.code === 200) {
     ElMessage.success('已驳回')
     load()
@@ -291,7 +294,11 @@ async function handleReject(row) {
 }
 
 async function handleWithdraw(row) {
-  await ElMessageBox.confirm(`确认撤回「${row.title}」？`, '提示', { type: 'warning' })
+  const ok = await ElMessageBox.confirm(`确认撤回「${row.title}」？`, '提示', { type: 'warning' })
+    .then(() => true)
+    .catch(() => false)
+  if (!ok) return
+
   const res = await withdrawApplication(row.id, '申请人撤回')
   if (res.code === 200) {
     ElMessage.success('已撤回')

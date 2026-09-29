@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.Evaluation;
 import com.gov.application.service.EvaluationService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,6 +39,7 @@ public class EvaluationController {
     }
 
     @Operation(summary = "提交整改")
+    @RequiresPerm("biz:evaluation:rectify")
     @PostMapping("/rectify/{evaluationId}")
     @OpLog(module = "好差评", operation = "差评整改")
     public R<Void> rectify(@PathVariable("evaluationId") Long evaluationId,

@@ -42,6 +42,9 @@ public class JacksonConfig {
         module.addSerializer(LocalTime.class, new LocalTimeSerializer(timeFmt));
         module.addDeserializer(LocalTime.class, new LocalTimeDeserializer(timeFmt));
 
-        return builder -> builder.modules(module);
+        // ★ 用 modulesToInstall 而不是 modules：
+        //   modules() 会**替换**掉 Spring Boot 自动注册的全部模块，
+        //   modulesToInstall() 只追加，避免覆盖 Boot 的默认模块集合。
+        return builder -> builder.modulesToInstall(module);
     }
 }

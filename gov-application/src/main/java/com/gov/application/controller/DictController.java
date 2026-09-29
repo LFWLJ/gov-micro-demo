@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.SysDict;
 import com.gov.application.service.DictService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,7 @@ public class DictController {
     }
 
     @Operation(summary = "新增字典")
+    @RequiresPerm("sys:dict:add")
     @PostMapping
     @OpLog(module = "数据字典", operation = "新增字典")
     public R<Long> create(@RequestBody SysDict dict) {
@@ -41,6 +43,7 @@ public class DictController {
     }
 
     @Operation(summary = "修改字典")
+    @RequiresPerm("sys:dict:edit")
     @PutMapping
     @OpLog(module = "数据字典", operation = "修改字典")
     public R<Void> update(@RequestBody SysDict dict) {
@@ -49,6 +52,7 @@ public class DictController {
     }
 
     @Operation(summary = "删除字典")
+    @RequiresPerm("sys:dict:del")
     @DeleteMapping("/{id}")
     @OpLog(module = "数据字典", operation = "删除字典")
     public R<Void> delete(@PathVariable("id") Long id) {
@@ -57,6 +61,7 @@ public class DictController {
     }
 
     @Operation(summary = "新增字典类型")
+    @RequiresPerm("sys:dict:add")
     @PostMapping("/type")
     @OpLog(module = "数据字典", operation = "新增字典类型")
     public R<Long> createType(@RequestBody SysDictType type) {

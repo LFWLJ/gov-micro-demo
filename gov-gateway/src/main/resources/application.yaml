@@ -17,11 +17,11 @@ spring:
       discovery:
         server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
         username: ${GOV_NACOS_USERNAME:nacos}
-        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
+        password: ${GOV_NACOS_PASSWORD:}
       config:
         server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
         username: ${GOV_NACOS_USERNAME:nacos}
-        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
+        password: ${GOV_NACOS_PASSWORD:}
         file-extension: yaml
         refresh-enabled: true
     gateway:
@@ -44,9 +44,20 @@ spring:
       password: ${GOV_REDIS_PASSWORD:}
 gov:
   jwt:
-    secret: ${GOV_JWT_SECRET:gov-micro-demo-secret-key-2026-very-long-for-hs256}
+    secret: ${GOV_JWT_SECRET:}
 gateway:
   auth:
     white-list:
       - /api/auth/login
       - /api/license/verify/**
+
+# Actuator：仅暴露 health/info，供 Docker healthcheck 探活使用
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      # 不向未认证调用方泄露组件细节
+      show-details: never

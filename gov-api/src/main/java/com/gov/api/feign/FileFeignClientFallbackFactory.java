@@ -29,7 +29,8 @@ public class FileFeignClientFallbackFactory implements FallbackFactory<FileFeign
 
             @Override
             public R<Map<String, Object>> getStats() {
-                return null;
+                // ★ 原来返回 null，调用方直接 NPE；降级也应返回结构化的失败响应
+                return R.fail(503, "文件服务暂时不可用，请稍后重试");
             }
         };
     }

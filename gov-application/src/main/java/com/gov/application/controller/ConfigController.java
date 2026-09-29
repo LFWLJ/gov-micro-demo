@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.SysConfig;
 import com.gov.application.service.ConfigService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ public class ConfigController {
     }
 
     @Operation(summary = "新增配置")
+    @RequiresPerm("sys:config:add")
     @PostMapping
     @OpLog(module = "系统配置", operation = "新增配置")
     public R<Long> create(@RequestBody SysConfig config) {
@@ -40,6 +42,7 @@ public class ConfigController {
     }
 
     @Operation(summary = "修改配置")
+    @RequiresPerm("sys:config:edit")
     @PutMapping
     @OpLog(module = "系统配置", operation = "修改配置")
     public R<Void> update(@RequestBody SysConfig config) {
@@ -48,6 +51,7 @@ public class ConfigController {
     }
 
     @Operation(summary = "删除配置")
+    @RequiresPerm("sys:config:del")
     @DeleteMapping("/{id}")
     @OpLog(module = "系统配置", operation = "删除配置")
     public R<Void> delete(@PathVariable("id") Long id) {

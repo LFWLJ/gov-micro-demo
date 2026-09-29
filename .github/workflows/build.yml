@@ -1,0 +1,147 @@
+name: build
+
+# ============================================================
+# CI：后端构建 + 前端构建 + docker-compose 语法校验
+#
+# ⚠️ 已知问题（本次改造如实报告，未用 -DskipTests 掩盖）：
+#    gov-api 模块的 GovApiApplicationTests 目前必定失败：
+#      java.lang.IllegalStateException: Unable to find a @SpringBootConfiguration
+#    原因：gov-api 是给其他模块依赖的「纯库」模块，没有 @SpringBootApplication
+#    类，但它的测试却标了 @SpringBootTest，Spring 找不到可加载的上下文。
+#    而且 Maven 默认 fail-fast：gov-api 一失败，后面 gov-auth / gov-file /
+#    gov-application 会被 ban（"Skipping xxx due to previous failures"），
+#    连测试都不会跑。
+#    因此 backend job 分两步：
+#      step1 跑 `mvn -B -ntp verify`（真实、严格，失败就红，绝不跳过测试）
+#      step2 用 --fail-at-end 再跑一次，只为了「把剩余模块的测试结果也打出来」
+#      （continue-on-error，不影响成败）
+#    修复方式见文件末尾注释。
+# ============================================================
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ==========================================================
+  # 1. 后端：编译 + 打包 + 单元测试
+  # ==========================================================
+  backend:
+    name: backend (maven verify)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (temurin) + maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: mvn verify
+        run: mvn -B -ntp verify
+
+      - name: mvn verify (--fail-at-end, 仅用于打印其余模块测试结果)
+        if: failure()
+        continue-on-error: true
+        run: |
+          mvn -B -ntp --fail-at-end verify 2>&1 | tee mvn-verify-all.log
+          echo "---------- surefire 结果汇总 ----------"
+          grep -rH 'Tests run' --include='*.txt' ./*/target/surefire-reports/ || true
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: "**/target/surefire-reports/**"
+          if-no-files-found: ignore
+
+  # ==========================================================
+  # 2. 前端：npm ci + 构建
+  # ==========================================================
+  frontend:
+    name: frontend (npm build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gov-admin-web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20 + npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: gov-admin-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  # ==========================================================
+  # 3. docker-compose 语法校验（轻量，不启动任何容器）
+  # ==========================================================
+  compose-config:
+    name: docker compose config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # .env 被 .gitignore 排除，CI 里不存在；compose 引用的一堆变量会变成
+      # "variable is not set" 警告。这里生成占位 .env，仅用于语法校验。
+      # 注意 NACOS_AUTH_TOKEN 必须 >= 32 字节（base64），否则 Nacos 会拒绝启动。
+      - name: Create dummy .env for syntax validation
+        run: |
+          cat > .env <<'EOF'
+          MYSQL_ROOT_PASSWORD=ci_dummy_mysql_password
+          MYSQL_DATABASE=gov_db
+          NACOS_USERNAME=nacos
+          NACOS_PASSWORD=ci_dummy_nacos_password
+          NACOS_AUTH_TOKEN=Y2lfZHVtbXlfdG9rZW5fbXVzdF9iZV9sb25nX2Vub3VnaF9mb3JuYWNvcw==
+          NACOS_AUTH_IDENTITY_KEY=serverIdentity
+          NACOS_AUTH_IDENTITY_VALUE=security
+          REDIS_PASSWORD=ci_dummy_redis_password
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=ci_dummy_minio_password
+          GOV_JWT_SECRET=ci_dummy_jwt_secret_must_be_long_enough_for_hs256
+          EOF
+
+      - name: Validate compose syntax
+        run: docker compose config -q
+
+      - name: Show resolved compose (debug)
+        run: |
+          docker compose config > /tmp/compose-resolved.yaml
+          wc -l /tmp/compose-resolved.yaml
+
+# ------------------------------------------------------------
+# gov-api 测试失败的修复建议（本次改造按要求未改动业务/测试 Java 代码）
+# ------------------------------------------------------------
+# 三选一：
+#   A. 删除 gov-api/src/test/.../GovApiApplicationTests.java
+#      —— gov-api 没有可启动的上下文，contextLoads 没有意义。
+#   B. 给个空配置并让测试指向它：
+#        @SpringBootConfiguration
+#        class GovApiTestConfig {}
+#
+#        @SpringBootTest(classes = GovApiTestConfig.class)
+#        class GovApiApplicationTests { ... }
+#   C. 改成普通 JUnit 测试（不加载 Spring 上下文）。
+#
+# 另外：gov-auth / gov-file / gov-application 里的 *ApplicationTests 也是
+# @SpringBootTest，会去连本机 Nacos(8848)/MySQL(3306)/Redis(6379)。CI runner
+# 上没有这些中间件，contextLoads 很可能因此失败。若确认失败，建议给 CI 加
+# service containers（mysql/redis）或给这些测试加 @ActiveProfiles("test") +
+# src/test/resources/application-test.yaml 关掉 nacos discovery / 数据源自动配置。

@@ -1,3 +1,30 @@
+# ============================================================
+# 日志轮转：所有服务统一限制单文件 10MB、保留 3 个
+# ============================================================
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# ============================================================
+# Java 服务健康检查锚点
+#
+# 为什么这样写：
+#   - 基础镜像 eclipse-temurin:17-jre（Ubuntu）实测自带 /usr/bin/curl 与 /usr/bin/bash，
+#     因此可直接 curl actuator 健康端点，无需改动 Dockerfile。
+#   - 但 curl 属于「镜像可能有、也可能没有」的东西，故再加一层 bash /dev/tcp 的 TCP 回退：
+#     即使将来换成精简镜像（jre-noble / jre-alpine）且 curl 被移除，探活依然可用。
+#   - 端口通过 shell 变量注入后展开进命令，避免依赖 shell 的二次展开。
+#   - 探活语义：连得上且能返回 HTTP 状态码 = 进程已就绪；刻意不要求 body 必须是 UP，
+#     避免某个健康指示器短暂 DOWN（如连接池预热）被误判成进程已死。
+# ============================================================
+x-java-healthcheck: &java-healthcheck
+  interval: 15s
+  timeout: 5s
+  retries: 10
+  start_period: 90s
+
 services:
   # ============================================================
   # 基础设施
@@ -9,8 +36,9 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       TZ: Asia/Shanghai
+    # 仅绑定本机：避免 3306 暴露到局域网
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
@@ -19,11 +47,18 @@ services:
       - --collation-server=utf8mb4_general_ci
       - --default-authentication-plugin=mysql_native_password
       - --lower_case_table_names=1
+      # 鈫?闄嶅唴瀛橈細performance_schema 榛樿鍗?100-200MB
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=192M
+      - --max-connections=60
+      - --skip-log-bin
+    mem_limit: 640m
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 15
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -31,16 +66,28 @@ services:
     image: redis:7-alpine
     container_name: gov-redis
     restart: unless-stopped
+    # 仅绑定本机 + 强制认证
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    mem_limit: 256m
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -52,16 +99,18 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9001"
+    mem_limit: 384m
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -75,9 +124,10 @@ services:
       /bin/sh -c "
       mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
       mc mb --ignore-existing myminio/gov-files;
-      mc anonymous set download myminio/gov-files;
+      mc anonymous set none myminio/gov-files;
       exit 0;
       "
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -86,12 +136,14 @@ services:
     container_name: gov-rocketmq-namesrv
     restart: unless-stopped
     ports:
-      - "9876:9876"
+      - "127.0.0.1:9876:9876"
     environment:
-      JAVA_OPT_EXT: "-Xms128m -Xmx256m -Xmn128m"
+      JAVA_OPT_EXT: "-Xms96m -Xmx192m -Xmn96m"
     command: sh mqnamesrv
     volumes:
       - rocketmq-namesrv-logs:/home/rocketmq/logs
+    mem_limit: 256m
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -103,16 +155,18 @@ services:
     depends_on:
       - rocketmq-namesrv
     ports:
-      - "10909:10909"
-      - "10911:10911"
+      - "127.0.0.1:10909:10909"
+      - "127.0.0.1:10911:10911"
     environment:
       NAMESRV_ADDR: rocketmq-namesrv:9876
-      JAVA_OPT_EXT: "-Xms256m -Xmx512m -Xmn256m"
+      JAVA_OPT_EXT: "-Xms192m -Xmx384m"
     volumes:
       - ./docker/rocketmq/broker.conf:/home/rocketmq/rocketmq-5.3.1/conf/broker.conf:ro
       - rocketmq-broker-store:/home/rocketmq/store
       - rocketmq-broker-logs:/home/rocketmq/logs
     command: sh mqbroker -c /home/rocketmq/rocketmq-5.3.1/conf/broker.conf
+    mem_limit: 704m
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -137,18 +191,25 @@ services:
       NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY}
       NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE}
       NACOS_AUTH_TOKEN_EXPIRE_SECONDS: "18000"
-      JVM_XMS: 256m
-      JVM_XMX: 512m
+      # 降内存：3.x 的元空间与 G1 线程是 1.3GB RSS 的主因
+      JVM_XMS: 192m
+      JVM_XMX: 384m
+      JVM_XMN: 128m
+      JVM_MS: 128m
+      JVM_MMS: 192m
     ports:
-      - "8848:8848"
-      - "9848:9848"
-      - "8080:8080"
+      - "127.0.0.1:8848:8848"
+      - "127.0.0.1:9848:9848"
+      - "127.0.0.1:8080:8080"
+    # 实测 RSS ~750MB：堆已降到 384m，这里留足非堆余量避免被 OOM 杀
+    mem_limit: 1024m
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8848/nacos/v3/admin/core/state/readiness" ]
       interval: 15s
       timeout: 5s
       retries: 30
       start_period: 60s
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -174,10 +235,18 @@ services:
       GOV_NACOS_PASSWORD: ${NACOS_PASSWORD}
       GOV_REDIS_HOST: redis
       GOV_REDIS_PORT: 6379
+      GOV_REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOV_JWT_SECRET: ${GOV_JWT_SECRET}
-      JAVA_OPTS: "-Xms256m -Xmx512m -Dfile.encoding=UTF-8"
+      JAVA_OPTS: "-XX:MaxRAMPercentage=55 -XX:InitialRAMPercentage=20 -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=96m -Xss512k -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
+    # 仅绑定本机：网关是唯一对外入口，其余服务端口不应对局域网开放
     ports:
-      - "8090:8090"
+      - "127.0.0.1:8090:8090"
+    mem_limit: 512m
+    # 探活：优先 curl actuator；容器内无 curl 时回退 bash /dev/tcp TCP 探测
+    healthcheck:
+      test: ["CMD-SHELL", "JAVA_PORT=8090; if command -v curl >/dev/null 2>&1; then curl -fsS -m 3 -o /dev/null \"http://127.0.0.1:$$JAVA_PORT/actuator/health\"; else for i in 1 2 3; do bash -c \"exec 3<>/dev/tcp/127.0.0.1/$$JAVA_PORT\" 2>/dev/null && exit 0; sleep 1; done; exit 1; fi"]
+      <<: *java-healthcheck
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -194,6 +263,8 @@ services:
         condition: service_healthy
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       GOV_DB_URL: "jdbc:mysql://mysql:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
       GOV_DB_USERNAME: root
@@ -203,10 +274,18 @@ services:
       GOV_NACOS_PASSWORD: ${NACOS_PASSWORD}
       GOV_REDIS_HOST: redis
       GOV_REDIS_PORT: 6379
+      GOV_REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOV_JWT_SECRET: ${GOV_JWT_SECRET}
-      JAVA_OPTS: "-Xms256m -Xmx512m -Dfile.encoding=UTF-8"
+      JAVA_OPTS: "-XX:MaxRAMPercentage=55 -XX:InitialRAMPercentage=20 -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=96m -Xss512k -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
+    # 仅供本机调试（Knife4j），生产应改为 expose 不发布端口
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
+    mem_limit: 512m
+    # 探活：优先 curl actuator；容器内无 curl 时回退 bash /dev/tcp TCP 探测
+    healthcheck:
+      test: ["CMD-SHELL", "JAVA_PORT=8081; if command -v curl >/dev/null 2>&1; then curl -fsS -m 3 -o /dev/null \"http://127.0.0.1:$$JAVA_PORT/actuator/health\"; else for i in 1 2 3; do bash -c \"exec 3<>/dev/tcp/127.0.0.1/$$JAVA_PORT\" 2>/dev/null && exit 0; sleep 1; done; exit 1; fi"]
+      <<: *java-healthcheck
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -236,10 +315,23 @@ services:
       GOV_NACOS_PASSWORD: ${NACOS_PASSWORD}
       GOV_REDIS_HOST: redis
       GOV_REDIS_PORT: 6379
+      GOV_REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOV_ROCKETMQ_ADDR: rocketmq-namesrv:9876
-      JAVA_OPTS: "-Xms384m -Xmx768m -Dfile.encoding=UTF-8"
+      JAVA_OPTS: "-XX:MaxRAMPercentage=55 -XX:InitialRAMPercentage=20 -XX:+UseSerialGC -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=96m -Xss512k -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
+      # 证照 PDF 用的中文字体路径（见 docker/fonts/README.md）；留空则回退到镜像内系统字体
+      GOV_PDF_FONT_PATH: ${GOV_PDF_FONT_PATH:-}
+    # 仅供本机调试（Knife4j），生产应改为 expose 不发布端口
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
+    # 可选：把中文 TTF 放进 docker/fonts/ 并设 GOV_PDF_FONT_PATH=/opt/gov/fonts/xxx.ttf
+    volumes:
+      - ./docker/fonts:/opt/gov/fonts:ro
+    mem_limit: 896m
+    # 探活：优先 curl actuator；容器内无 curl 时回退 bash /dev/tcp TCP 探测
+    healthcheck:
+      test: ["CMD-SHELL", "JAVA_PORT=8082; if command -v curl >/dev/null 2>&1; then curl -fsS -m 3 -o /dev/null \"http://127.0.0.1:$$JAVA_PORT/actuator/health\"; else for i in 1 2 3; do bash -c \"exec 3<>/dev/tcp/127.0.0.1/$$JAVA_PORT\" 2>/dev/null && exit 0; sleep 1; done; exit 1; fi"]
+      <<: *java-healthcheck
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -258,6 +350,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       GOV_DB_URL: "jdbc:mysql://mysql:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
       GOV_DB_USERNAME: root
@@ -267,13 +361,21 @@ services:
       GOV_NACOS_PASSWORD: ${NACOS_PASSWORD}
       GOV_REDIS_HOST: redis
       GOV_REDIS_PORT: 6379
+      GOV_REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOV_MINIO_ENDPOINT: http://minio:9000
       GOV_MINIO_ACCESS: ${MINIO_ROOT_USER}
       GOV_MINIO_SECRET: ${MINIO_ROOT_PASSWORD}
       GOV_MINIO_BUCKET: gov-files
-      JAVA_OPTS: "-Xms256m -Xmx512m -Dfile.encoding=UTF-8"
+      JAVA_OPTS: "-XX:MaxRAMPercentage=55 -XX:InitialRAMPercentage=20 -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=96m -Xss512k -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
+    # 仅供本机调试（Knife4j），生产应改为 expose 不发布端口
     ports:
-      - "8083:8083"
+      - "127.0.0.1:8083:8083"
+    mem_limit: 512m
+    # 探活：优先 curl actuator；容器内无 curl 时回退 bash /dev/tcp TCP 探测
+    healthcheck:
+      test: ["CMD-SHELL", "JAVA_PORT=8083; if command -v curl >/dev/null 2>&1; then curl -fsS -m 3 -o /dev/null \"http://127.0.0.1:$$JAVA_PORT/actuator/health\"; else for i in 1 2 3; do bash -c \"exec 3<>/dev/tcp/127.0.0.1/$$JAVA_PORT\" 2>/dev/null && exit 0; sleep 1; done; exit 1; fi"]
+      <<: *java-healthcheck
+    logging: *default-logging
     networks:
       - gov-net
 
@@ -286,10 +388,14 @@ services:
       dockerfile: Dockerfile
     container_name: gov-admin-web
     restart: unless-stopped
+    # 网关已有健康检查：等它真正就绪后再起前端，避免首屏请求打到未就绪的网关
     depends_on:
-      - gov-gateway
+      gov-gateway:
+        condition: service_healthy
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
+    mem_limit: 128m
+    logging: *default-logging
     networks:
       - gov-net
 

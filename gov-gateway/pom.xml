@@ -40,6 +40,13 @@
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
+        <!-- Actuator：WebFlux/reactive 同样兼容，提供 /actuator/health 供 Docker 探活。
+             注意：此处刻意不引入 gov-common（网关是 reactive，不能混入 servlet 依赖）。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- JWT（和 gov-auth 保持一致） -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

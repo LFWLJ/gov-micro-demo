@@ -128,12 +128,18 @@ dept_leader	tenant_a	ROLE_ADMIN	本部门及以下
 clerk	tenant_a	ROLE_USER	本部门
 user	tenant_a	ROLE_USER	本部门
 gov_b_admin	tenant_b	ROLE_ADMIN	全部
-中间件密码：
+中间件密码：全部通过 `.env` 注入，仓库内不提供任何默认口令/密钥。
 
-服务	用户名	密码
-MySQL	root	root123
-Nacos	nacos	7PkhQ0b92nUU
-MinIO	minioadmin	minioadmin
+| 变量 | 用途 |
+|---|---|
+| `MYSQL_ROOT_PASSWORD` | MySQL root |
+| `NACOS_PASSWORD` | Nacos 控制台与客户端 |
+| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | MinIO |
+| `REDIS_PASSWORD` | Redis（已启用 requirepass，**不可为空**）|
+| `GOV_JWT_SECRET` | JWT 签名密钥 |
+
+> 首次使用：`cp .env.example .env`，把其中所有 `change_me_*` 换成随机值。
+> 各服务配置里的默认值已清空，缺少环境变量会**启动即失败**，不会再静默使用弱口令。
 七、常用运维命令
 bash
 # 状态 / 启动 / 停止

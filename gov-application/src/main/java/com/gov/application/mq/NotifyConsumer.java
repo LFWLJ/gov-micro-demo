@@ -43,6 +43,10 @@ public class NotifyConsumer implements RocketMQListener<NotifyMessage> {
             }
         } catch (Exception e) {
             log.error("通知消费异常, type={}, tenantId={}", msg.getType(), msg.getTenantId(), e);
+            // ★ 必须重抛：RocketMQ 只有收到异常才会重试，吞掉异常等于直接 ack，
+            //   消息会被永久丢弃（消费方是做通知，重试可能重复发送，
+            //   若要求严格幂等，应引入 msgId + Redis 去重，当前实现按 at-least-once 处理）。
+            throw new RuntimeException("通知消费失败，触发重试: " + msg.getType(), e);
         } finally {
             TenantContext.clear();
         }

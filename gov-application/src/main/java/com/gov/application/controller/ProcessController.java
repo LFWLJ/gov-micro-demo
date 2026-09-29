@@ -2,6 +2,7 @@ package com.gov.application.controller;
 
 import com.gov.application.service.ProcessBizService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,6 +23,7 @@ public class ProcessController {
     private ProcessBizService processBizService;
 
     @Operation(summary = "发起流程")
+    @RequiresPerm("biz:process:start")
     @PostMapping("/start")
     @OpLog(module = "审批流程", operation = "发起流程")
     public R<Map<String, Object>> start(@RequestBody Map<String, Object> body) {
@@ -44,6 +46,7 @@ public class ProcessController {
     }
 
     @Operation(summary = "完成任务")
+    @RequiresPerm("biz:process:complete")
     @PostMapping("/complete/{taskId}")
     @OpLog(module = "审批流程", operation = "完成任务")
     public R<Void> complete(

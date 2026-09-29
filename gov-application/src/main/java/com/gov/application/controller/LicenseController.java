@@ -4,9 +4,11 @@ import com.gov.application.entity.License;
 import com.gov.application.entity.LicenseTemplate;
 import com.gov.application.service.LicenseService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +40,7 @@ public class LicenseController {
     }
 
     @Operation(summary = "生成证照")
+    @RequiresPerm("biz:license:issue")
     @PostMapping("/issue")
     @OpLog(module = "电子证照", operation = "生成证照")
     public R<Map<String, Object>> issue(@RequestBody License license) {
@@ -50,7 +53,19 @@ public class LicenseController {
         return R.ok(licenseService.verify(code));
     }
 
+    @Operation(summary = "下载证照 PDF（按需渲染）")
+    @GetMapping("/download/{id}")
+    public void download(@PathVariable("id") Long id, HttpServletResponse response) throws Exception {
+        byte[] pdf = licenseService.renderPdf(id);
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=license-" + id + ".pdf");
+        response.setContentLength(pdf.length);
+        response.getOutputStream().write(pdf);
+        response.getOutputStream().flush();
+    }
+
     @Operation(summary = "吊销证照")
+    @RequiresPerm("biz:license:revoke")
     @PostMapping("/revoke/{id}")
     @OpLog(module = "电子证照", operation = "吊销证照")
     public R<Void> revoke(@PathVariable("id") Long id) {

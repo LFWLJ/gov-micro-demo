@@ -43,8 +43,21 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
+    /**
+     * 网关注入、下游无条件信任的内部头。
+     * 客户端一律不得自带：进入过滤器时先全部剥离，再由网关按需重新注入。
+     */
+    private static final List<String> INTERNAL_HEADERS = List.of(
+            "X-User-Id", "X-Tenant-Id", "X-Roles", "X-Dept-Id", "X-Data-Scope");
+
     private SecretKey key() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** 剥离客户端伪造的内部身份头 */
+    private ServerHttpRequest.Builder stripInternalHeaders(ServerWebExchange exchange) {
+        return exchange.getRequest().mutate()
+                .headers(headers -> INTERNAL_HEADERS.forEach(headers::remove));
     }
 
     @Override
@@ -60,7 +73,11 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
 
         boolean isWhite = whiteList.stream().anyMatch(p -> pathMatcher.match(p, path));
         if (isWhite) {
-            return chain.filter(exchange);
+            // ★ 白名单路径同样要剥离伪造的内部头：
+            //   否则匿名请求自带 X-User-Id/X-Tenant-Id 就能冒充任意用户与租户
+            return chain.filter(exchange.mutate()
+                    .request(stripInternalHeaders(exchange).build())
+                    .build());
         }
 
         String auth = exchange.getRequest().getHeaders().getFirst("Authorization");
@@ -95,8 +112,8 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
                     if (Boolean.TRUE.equals(isBlacklisted)) {
                         return unauthorized(exchange, "Token 已失效，请重新登录");
                     }
-                    // 5. 不在黑名单，注入用户上下文
-                    ServerHttpRequest.Builder builder = exchange.getRequest().mutate()
+                    // 5. 不在黑名单：先剥离客户端伪造的内部头，再注入可信上下文
+                    ServerHttpRequest.Builder builder = stripInternalHeaders(exchange)
                             .header("X-User-Id", uid == null ? "" : uid)
                             .header("X-Tenant-Id", tid == null ? "" : tid)
                             .header("X-Roles", roles == null ? "" : roles)

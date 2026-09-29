@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.Guide;
 import com.gov.application.service.GuideService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,6 +46,7 @@ public class GuideController {
     }
 
     @Operation(summary = "新增指南")
+    @RequiresPerm("biz:guide:add")
     @PostMapping
     @OpLog(module = "办事指南", operation = "新增指南")
     public R<Long> create(@RequestBody Guide guide) {
@@ -52,6 +54,7 @@ public class GuideController {
     }
 
     @Operation(summary = "修改指南")
+    @RequiresPerm("biz:guide:edit")
     @PutMapping
     @OpLog(module = "办事指南", operation = "修改指南")
     public R<Void> update(@RequestBody Guide guide) {
@@ -60,6 +63,7 @@ public class GuideController {
     }
 
     @Operation(summary = "删除指南")
+    @RequiresPerm("biz:guide:del")
     @DeleteMapping("/{id}")
     @OpLog(module = "办事指南", operation = "删除指南")
     public R<Void> delete(@PathVariable("id") Long id) {
@@ -68,6 +72,7 @@ public class GuideController {
     }
 
     @Operation(summary = "启用/停用")
+    @RequiresPerm("biz:guide:edit")
     @PostMapping("/{id}/status/{status}")
     @OpLog(module = "办事指南", operation = "切换状态")
     public R<Void> toggleStatus(@PathVariable("id") Long id,

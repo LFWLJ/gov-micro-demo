@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getProfile, updateProfile, changePassword } from '../api/user'
@@ -106,6 +106,9 @@ import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+// 修改密码成功后的跳转定时器，组件卸载时必须清掉，否则离开页面后仍会触发
+let redirectTimer = null
 
 const form = reactive({
   id: null,
@@ -196,7 +199,9 @@ async function handleChangePassword() {
     })
     if (res.code === 200) {
       ElMessage.success('密码修改成功，请重新登录')
-      setTimeout(() => {
+      clearTimeout(redirectTimer)          // 连点两次只保留最后一个定时器
+      redirectTimer = setTimeout(() => {
+        redirectTimer = null
         userStore.clear()
         router.push('/login')
       }, 1000)
@@ -209,6 +214,11 @@ async function handleChangePassword() {
 }
 
 onMounted(load)
+
+onUnmounted(() => {
+  clearTimeout(redirectTimer)
+  redirectTimer = null
+})
 </script>
 
 <style scoped>

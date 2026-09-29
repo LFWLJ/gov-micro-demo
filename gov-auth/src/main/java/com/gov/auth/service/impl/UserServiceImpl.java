@@ -40,26 +40,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public SysUser findByUsername(String username) {
-        String cacheKey = RedisKeys.userCache(username);
-
-        Object cached = redisService.get(cacheKey);
-        if (cached instanceof SysUser) {
-            return (SysUser) cached;
-        }
-
-        SysUser user = sysUserMapper.selectOne(
+        // ★ 安全：不再把整个 SysUser（含 bcrypt 哈希）缓存进 Redis。
+        //   登录是低频操作，直查数据库即可；同时避免凭证外泄与缓存键的跨租户歧义。
+        return sysUserMapper.selectOne(
                 new LambdaQueryWrapper<SysUser>()
                         .eq(SysUser::getUsername, username));
-
-        if (user != null) {
-            redisService.set(cacheKey, user, 10, TimeUnit.MINUTES);
-        }
-        return user;
     }
 
     @Override
     public SysUser findById(Long id) {
-        return sysUserMapper.selectById(id);
+        SysUser user = sysUserMapper.selectById(id);
+        if (user != null) {
+            assertSameTenant(user);
+        }
+        return user;
     }
 
     @Override
@@ -72,19 +66,17 @@ public class UserServiceImpl implements UserService {
             return user;
         }
 
-        if (!user.getPassword().startsWith("$2a$") && password.equals(user.getPassword())) {
-            user.setPassword(passwordEncoder.encode(password));
-            sysUserMapper.updateById(user);
-            redisService.delete(RedisKeys.userCache(username));
-            return user;
-        }
-
+        // ★ 安全：已移除「哈希非 $2a$ 时用明文 equals 比对并自动升级」的分支。
+        //   留着它等于把"库里存明文口令也能登录"永久保留在生产路径上。
+        //   历史明文口令请用一次性迁移脚本处理，不要放进登录逻辑。
         return null;
     }
 
     @Override
     public Map<String, Object> page(int page, int size, String keyword) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        // ★ sys_user 被排除在租户拦截器外（登录需按用户名跨租户查询），此处必须显式隔离
+        wrapper.eq(SysUser::getTenantId, requireTenant());
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(SysUser::getUsername, keyword)
                     .or().like(SysUser::getRealName, keyword));
@@ -102,6 +94,27 @@ public class UserServiceImpl implements UserService {
         data.put("total", result.getTotal());
         data.put("records", result.getRecords());
         return data;
+    }
+
+    /** 取当前租户，缺失直接失败 —— 绝不允许退化成"不过滤" */
+    private String requireTenant() {
+        String tenantId = TenantContext.get();
+        if (!StringUtils.hasText(tenantId)) {
+            throw new BizException("缺少租户标识");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 校验目标用户属于当前租户。
+     * sys_user 未纳入 MyBatis-Plus 租户拦截器，所有按 id 的读/改/删都必须显式校验，
+     * 否则可跨租户查看、改密（账号接管）与删除用户。
+     */
+    private void assertSameTenant(SysUser user) {
+        if (!requireTenant().equals(user.getTenantId())) {
+            // 不区分"不存在"与"不属于本租户"，避免暴露其他租户用户是否存在
+            throw new BizException("用户不存在");
+        }
     }
 
     private void fillDeptNames(List<SysUser> users) {
@@ -175,6 +188,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
+        assertSameTenant(user);
         user.setRealName(dto.getRealName());
         user.setRoles(dto.getRoles());
         user.setDeptId(dto.getDeptId());
@@ -191,6 +205,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
+        assertSameTenant(user);
         user.setRealName(realName);
         sysUserMapper.updateById(user);
         redisService.delete(RedisKeys.userCache(user.getUsername()));
@@ -202,6 +217,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
+        assertSameTenant(user);
         if ("admin".equals(user.getUsername())) {
             throw new BizException("admin 不允许删除");
         }
@@ -222,6 +238,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
+        assertSameTenant(user);
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new BizException("原密码错误");
         }
@@ -243,6 +260,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
+        assertSameTenant(user);
         user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
         redisService.delete(RedisKeys.userCache(user.getUsername()));

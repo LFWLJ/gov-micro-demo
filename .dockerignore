@@ -1,0 +1,70 @@
+# ============================================================
+# 根目录 .dockerignore —— 后端构建上下文（context: .）
+#
+# 背景：4 个 Java 服务的 build context 是仓库根目录，但真正需要
+#       的只有 <module>/target/<module>-1.0.0.jar。仓库根约 1GB，
+#       绝大部分是 target/、node_modules/、.git/、dist/。
+#
+# ⚠️ 关键约束：Dockerfile 第 9 行是
+#       COPY ${MODULE}/target/${MODULE}-1.0.0.jar /app/app.jar
+#    所以 target/ 目录本身可以被排除，但 target 下的 jar 绝不能
+#    被排除。下面用「目录排除 + jar 白名单」的保守写法保证这点。
+#
+#    注意：docker 的 .dockerignore 采用「后匹配者胜出」规则，
+#    且 `!` 白名单可以救回被父级目录排除的文件，因此
+#    `!gov-*/target/*.jar` 必须放在 `**/target/` 之后。
+# ============================================================
+
+# ---------- 构建产物 ----------
+# 排除所有 target 目录（含 test-classes、classes、generated-sources……）
+**/target/
+
+# ⚠️ 白名单：把 4 个 Java 服务要 COPY 的 jar 救回来。
+#    没有这两行，Dockerfile 的 COPY 会报
+#    "failed to compute cache key: ... not found"。
+!gov-*/target/*.jar
+
+# 兜底：万一以后 jar 名/版本号变了（例如 -1.0.0-SNAPSHOT、-2.0.0）
+!gov-*/target/*.jar.original
+
+# 顺带排除 target 下的其它无用大文件（jar 已在上面白名单里）
+**/target/*.war
+**/target/*.tar
+**/target/*.tar.gz
+**/target/*.zip
+
+# ---------- 前端依赖 / 产物 ----------
+**/node_modules/
+gov-admin-web/dist/
+gov-admin-web/.vite/
+gov-admin-web/.vite-temp/
+gov-admin-web/.eslintcache
+
+# ---------- 版本库 / IDE ----------
+.git/
+.gitignore
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---------- 日志 / 临时文件 ----------
+*.log
+*.log.*
+logs/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# ---------- 文档 / CI（镜像里用不到） ----------
+*.md
+.github/
+LICENSE
+
+# ---------- 敏感文件：不进构建上下文 ----------
+# .env 含真实密码，绝不打包进镜像层
+.env

@@ -71,6 +71,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { UploadFilled } from '@element-plus/icons-vue'
 import { pageFiles, getFileUrl, deleteFile } from '../api/file'
 
 const list = ref([])

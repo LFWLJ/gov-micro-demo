@@ -6,21 +6,29 @@ import com.gov.application.entity.Consult;
 import com.gov.application.mapper.ConsultMapper;
 import com.gov.application.service.ConsultService;
 import com.gov.common.exception.BizException;
+import com.gov.common.redis.RedisService;
 import com.gov.common.tenant.TenantContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ConsultServiceImpl implements ConsultService {
 
     @Autowired
     private ConsultMapper consultMapper;
+
+    @Autowired
+    private RedisService redisService;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
@@ -62,17 +70,40 @@ public class ConsultServiceImpl implements ConsultService {
             consult.setType("CONSULT");
         }
 
-        consult.setTenantId(TenantContext.get());
+        String tenantId = TenantContext.get();
+        if (!StringUtils.hasText(tenantId)) {
+            throw new BizException("缺少租户标识");
+        }
+        consult.setTenantId(tenantId);
         String dateStr = LocalDateTime.now().format(DATE_FMT);
-        Long todayCount = consultMapper.selectCount(
-                new LambdaQueryWrapper<Consult>()
-                        .likeRight(Consult::getConsultNo, "CON-" + dateStr));
-        consult.setConsultNo(String.format("CON-%s-%03d", dateStr, todayCount + 1));
+        // ★ 用 Redis 原子自增生成当日流水号。
+        //   原实现是 count+1，并发提交必然重号（且 consult_no 无唯一索引兜底）；
+        //   这里与 AppointmentServiceImpl 的排队号方案保持一致。
+        long seq = nextDailySeq("consult:no:" + tenantId + ":" + dateStr);
+        consult.setConsultNo(String.format("CON-%s-%03d", dateStr, seq));
 
         consult.setStatus("PENDING");
         consult.setCreateTime(LocalDateTime.now());
         consultMapper.insert(consult);
         return consult.getId();
+    }
+
+    /** 当日流水号：首次自增时把 key 的过期时间设到当天 24 点 */
+    private long nextDailySeq(String key) {
+        Long seq = redisService.increment(key, 1);
+        if (seq == null) {
+            throw new BizException("生成工单编号失败，请重试");
+        }
+        if (seq == 1L) {
+            long seconds = Duration.between(
+                    LocalDateTime.now(),
+                    LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.MIDNIGHT)
+            ).getSeconds();
+            if (seconds > 0) {
+                redisService.expire(key, seconds, TimeUnit.SECONDS);
+            }
+        }
+        return seq;
     }
 
     @Override

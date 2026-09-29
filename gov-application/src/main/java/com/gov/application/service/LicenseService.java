@@ -16,4 +16,7 @@ public interface LicenseService {
     Map<String, Object> verify(String verifyCode);
 
     void revoke(Long id);
+
+    /** 按需渲染证照 PDF（下载时生成，避免把大对象常驻库/事务） */
+    byte[] renderPdf(Long id);
 }

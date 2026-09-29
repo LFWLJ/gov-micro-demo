@@ -75,7 +75,7 @@
         <el-timeline>
           <el-timeline-item
             v-for="(node, idx) in (traceData.nodes || [])"
-            :key="idx"
+            :key="node.id ?? node.taskId ?? idx"
             :type="node.status === 'DONE' ? 'success' : 'primary'"
             :hollow="node.status === 'PENDING'"
             :timestamp="node.startTime"

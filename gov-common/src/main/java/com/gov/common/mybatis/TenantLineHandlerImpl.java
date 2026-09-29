@@ -10,22 +10,17 @@ import java.util.Set;
 public class TenantLineHandlerImpl implements TenantLineHandler {
 
     private static final Set<String> IGNORE_TABLES = Set.of(
+            // ↓ 登录需"按用户名跨租户查询"，无法统一套用租户条件。
+            //   补偿措施：UserServiceImpl 对 sys_user 所有按 id 的读/改/删都做了显式租户校验
+            //   （见 assertSameTenant / page 的 tenant_id 条件），请勿移除那里的校验。
             "sys_user",
+            // ↓ 租户注册表本身是平台级数据，按 tenant_id 过滤会让租户管理失效
             "sys_tenant",
-            "sys_dict",
-            "sys_dict_type",
-            "sys_config",
-            "sys_login_log",
-            "sys_oper_log",
-            "t_file_info",
-            "t_file",
             // ↓ 角色/菜单相关的表都没有 tenant_id 列，必须忽略
             "sys_menu",
             "sys_role_menu",
             "sys_user_role",
-            "sys_role_dept",
-            // ↓ 附件表也没有 tenant_id
-            "t_attachment"
+            "sys_role_dept"
     );
 
     private static final Set<String> IGNORE_PREFIXES = Set.of(

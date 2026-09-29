@@ -59,7 +59,15 @@ gov-application/src/main/resources/fonts/
 !.env.example
 
 # 数据库初始化 SQL：
-# 01-init.sql 是项目必需的（否则无法初始化），保留
+# 01-init.sql / 02-perms.sql / 03-index.sql 是项目必需的（否则无法初始化/性能受损），保留
 # 其他导出的 SQL（含真实数据）不提交
 docker/mysql/init/*.sql
 !docker/mysql/init/01-init.sql
+!docker/mysql/init/02-perms.sql
+!docker/mysql/init/03-index.sql
+
+# 中文字体（电子证照 PDF 用）：体积大且有授权限制，不提交，只保留说明
+# 用法见 docker/fonts/README.md
+docker/fonts/*.ttf
+docker/fonts/*.otf
+docker/fonts/*.ttc

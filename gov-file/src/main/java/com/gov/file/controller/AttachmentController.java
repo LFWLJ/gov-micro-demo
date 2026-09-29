@@ -21,6 +21,7 @@ public class AttachmentController {
     private AttachmentService attachmentService;
 
     @Operation(summary = "关联附件到业务对象")
+    @RequiresPerm("biz:attachment:add")
     @PostMapping
     public R<Long> save(@RequestBody AttachmentSaveDTO dto,
                         @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
@@ -36,6 +37,7 @@ public class AttachmentController {
     }
 
     @Operation(summary = "删除附件关联")
+    @RequiresPerm("biz:attachment:del")
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable("id") Long id,
                           @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {

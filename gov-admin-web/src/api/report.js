@@ -16,7 +16,9 @@ export function statByDate(params) {
 export async function exportExcel(params) {
   const res = await api.get('/api/report/export', {
     params,
-    responseType: 'blob'
+    responseType: 'blob',
+    timeout: 300000,   // 导出走长超时
+    allowRepeat: true  // 用户连点两次导出不应互相取消
   })
   return res
 }

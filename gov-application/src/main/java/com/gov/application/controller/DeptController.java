@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.Dept;
 import com.gov.application.service.DeptService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +27,7 @@ public class DeptController {
     }
 
     @Operation(summary = "新增部门")
+    @RequiresPerm("sys:dept:add")
     @PostMapping
     @OpLog(module = "部门管理", operation = "新增部门")
     public R<Long> create(@RequestBody Dept dept) {
@@ -33,6 +35,7 @@ public class DeptController {
     }
 
     @Operation(summary = "修改部门")
+    @RequiresPerm("sys:dept:edit")
     @PutMapping
     @OpLog(module = "部门管理", operation = "修改部门")
     public R<Void> update(@RequestBody Dept dept) {
@@ -41,6 +44,7 @@ public class DeptController {
     }
 
     @Operation(summary = "删除部门")
+    @RequiresPerm("sys:dept:del")
     @DeleteMapping("/{id}")
     @OpLog(module = "部门管理", operation = "删除部门")
     public R<Void> delete(@PathVariable("id") Long id) {

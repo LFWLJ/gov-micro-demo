@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.Consult;
 import com.gov.application.service.ConsultService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,6 +39,7 @@ public class ConsultController {
     }
 
     @Operation(summary = "回复工单")
+    @RequiresPerm("biz:consult:reply")
     @PostMapping("/reply/{id}")
     @OpLog(module = "咨询投诉", operation = "回复工单")
     public R<Void> reply(@PathVariable("id") Long id,
@@ -48,6 +50,7 @@ public class ConsultController {
     }
 
     @Operation(summary = "关闭工单")
+    @RequiresPerm("biz:consult:close")
     @PostMapping("/close/{id}")
     @OpLog(module = "咨询投诉", operation = "关闭工单")
     public R<Void> close(@PathVariable("id") Long id) {
@@ -56,6 +59,7 @@ public class ConsultController {
     }
 
     @Operation(summary = "删除工单")
+    @RequiresPerm("biz:consult:del")
     @DeleteMapping("/{id}")
     @OpLog(module = "咨询投诉", operation = "删除工单")
     public R<Void> delete(@PathVariable("id") Long id) {

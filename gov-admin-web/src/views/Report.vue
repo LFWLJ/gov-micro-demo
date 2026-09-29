@@ -84,9 +84,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
+import echarts from '../utils/echarts'
+import { isCanceledError } from '../api/request'
 import { getSummary, statByDept, statByDate, exportExcel } from '../api/report'
 
 const query = reactive({ startTime: '', endTime: '' })
@@ -187,13 +188,31 @@ async function handleExport() {
     window.URL.revokeObjectURL(url)
     ElMessage.success('导出成功')
   } catch (e) {
-    ElMessage.error('导出失败')
+    // 被重复请求取消时不误报为导出失败
+    if (!isCanceledError(e)) ElMessage.error('导出失败')
   } finally {
     exporting.value = false
   }
 }
 
-onMounted(load)
+// 窗口尺寸变化时重绘（与 BigScreen.vue 的写法保持一致）
+function resize() {
+  deptChart?.resize()
+  dateChart?.resize()
+}
+
+onMounted(() => {
+  window.addEventListener('resize', resize)
+  load()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', resize)
+  deptChart?.dispose()
+  dateChart?.dispose()
+  deptChart = null
+  dateChart = null
+})
 </script>
 
 <style scoped>

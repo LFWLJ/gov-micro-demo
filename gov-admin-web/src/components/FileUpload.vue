@@ -47,9 +47,11 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Upload } from '@element-plus/icons-vue'
 import {
   uploadFile, saveAttachment, listAttachments, deleteAttachment, getDownloadUrl
 } from '../api/attachment'
+import { isCanceledError } from '../api/request'
 
 const props = defineProps({
   bizType: { type: String, required: true },
@@ -117,7 +119,8 @@ async function customUpload({ file }) {
       ElMessage.error(asRes.msg || '关联失败')
     }
   } catch (e) {
-    ElMessage.error('上传失败')
+    // 重复请求被主动取消时不提示（真实失败才提示）
+    if (!isCanceledError(e)) ElMessage.error('上传失败')
   } finally {
     uploading.value = false
   }
@@ -141,7 +144,12 @@ async function handleDownload(row) {
 }
 
 async function handleDelete(row) {
-  await ElMessageBox.confirm(`确认删除附件「${row.fileName}」？`, '提示', { type: 'warning' })
+  // 点「取消」会 reject，必须捕获，否则会抛未处理拒绝
+  const ok = await ElMessageBox.confirm(`确认删除附件「${row.fileName}」？`, '提示', { type: 'warning' })
+    .then(() => true)
+    .catch(() => false)
+  if (!ok) return
+
   const res = await deleteAttachment(row.id)
   if (res.code === 200) {
     ElMessage.success('已删除')

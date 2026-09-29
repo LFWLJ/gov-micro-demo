@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${GOV_DB_URL:jdbc:mysql://127.0.0.1:3306/gov_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${GOV_DB_USERNAME:root}
-    password: ${GOV_DB_PASSWORD:root123}
+    password: ${GOV_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
@@ -18,7 +18,7 @@ spring:
       discovery:
         server-addr: ${GOV_NACOS_ADDR:127.0.0.1:8848}
         username: ${GOV_NACOS_USERNAME:nacos}
-        password: ${GOV_NACOS_PASSWORD:7PkhQ0b92nUU}
+        password: ${GOV_NACOS_PASSWORD:}
 
   data:
     redis:
@@ -30,7 +30,7 @@ spring:
 
 gov:
   jwt:
-    secret: ${GOV_JWT_SECRET:gov-micro-demo-secret-key-2026-very-long-for-hs256}
+    secret: ${GOV_JWT_SECRET:}
     expire: 43200
 
 
@@ -44,3 +44,14 @@ logging:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}, tenant=%X{tenantId:-}] %logger{36} - %msg%n"
   level:
     com.gov: info
+
+# Actuator：仅暴露 health/info，供 Docker healthcheck 探活使用
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      # 不向未认证调用方泄露数据库/Redis 等组件细节
+      show-details: never

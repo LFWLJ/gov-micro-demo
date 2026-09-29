@@ -152,7 +152,7 @@
         <div class="card card-full">
           <div class="card-title">实时动态</div>
           <div class="log-list">
-            <div v-for="(log, idx) in recentLogs" :key="idx" class="log-item">
+            <div v-for="(log, idx) in recentLogs" :key="log.id ?? log.createTime + '-' + idx" class="log-item">
               <span class="log-time">{{ formatTime(log.time) }}</span>
               <span class="log-module">{{ log.module }}</span>
               <span class="log-op">{{ log.operation }}</span>
@@ -194,7 +194,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import echarts, { graphic } from '../utils/echarts'
 import { getScreenOverview } from '../api/screen'
 
 const router = useRouter()
@@ -294,7 +294,7 @@ function renderRank() {
       type: 'bar',
       data: deptRank.value.map(d => d.value).reverse(),
       itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+        color: new graphic.LinearGradient(0, 0, 1, 0, [
           { offset: 0, color: '#00e5ff' }, { offset: 1, color: '#00a8cc' }
         ])
       },
@@ -320,7 +320,7 @@ function renderModule() {
       type: 'bar',
       data: moduleStats.value.map(m => m.value),
       itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: '#00e5ff' }, { offset: 1, color: '#004a77' }
         ])
       },
@@ -344,7 +344,7 @@ function renderTrend() {
         name: '新增办件', type: 'line', smooth: true, data: trend.newApplications,
         itemStyle: { color: '#00e5ff' }, lineStyle: { width: 2 },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(0, 229, 255, 0.4)' },
             { offset: 1, color: 'rgba(0, 229, 255, 0)' }
           ])
@@ -354,7 +354,7 @@ function renderTrend() {
         name: '完成审批', type: 'line', smooth: true, data: trend.completed,
         itemStyle: { color: '#67c23a' }, lineStyle: { width: 2 },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(103, 194, 58, 0.4)' },
             { offset: 1, color: 'rgba(103, 194, 58, 0)' }
           ])
@@ -386,7 +386,7 @@ function renderHour() {
       itemStyle: { color: '#00e5ff' },
       lineStyle: { width: 2 },
       areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: 'rgba(0, 229, 255, 0.4)' },
           { offset: 1, color: 'rgba(0, 229, 255, 0)' }
         ])

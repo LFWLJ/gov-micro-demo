@@ -197,7 +197,11 @@ public class ProcessBizServiceImpl implements ProcessBizService {
                     }
                 }
             } catch (Exception e) {
-                log.error("流程结束回调失败, processInstanceId={}, 办件状态可能未更新, 需人工补偿", processInstanceId, e);
+                // ★ 不再吞异常：原实现吞掉异常会留下「流程已结束、办件仍是 PENDING」的永久不一致。
+                //   改为抛出，使流程完成与办件状态回写在同一事务内原子回滚，用户可安全重试。
+                log.error("流程结束后的办件状态回写失败，本事务将回滚, processInstanceId={}",
+                        processInstanceId, e);
+                throw new BizException("办件状态回写失败，操作已回滚，请重试");
             }
         }
     }

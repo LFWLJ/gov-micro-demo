@@ -14,7 +14,7 @@
           <!-- 目录：M -->
           <el-sub-menu v-if="node.menuType === 'M'" :index="String(node.id)">
             <template #title>
-              <el-icon v-if="node.icon"><component :is="node.icon" /></el-icon>
+              <el-icon v-if="resolveIcon(node.icon)"><component :is="resolveIcon(node.icon)" /></el-icon>
               <span>{{ node.menuName }}</span>
             </template>
             <el-menu-item
@@ -22,14 +22,14 @@
               :key="child.id"
               :index="child.path"
             >
-              <el-icon v-if="child.icon"><component :is="child.icon" /></el-icon>
+              <el-icon v-if="resolveIcon(child.icon)"><component :is="resolveIcon(child.icon)" /></el-icon>
               <span>{{ child.menuName }}</span>
             </el-menu-item>
           </el-sub-menu>
 
           <!-- 菜单：C -->
           <el-menu-item v-else-if="node.menuType === 'C'" :index="node.path">
-            <el-icon v-if="node.icon"><component :is="node.icon" /></el-icon>
+            <el-icon v-if="resolveIcon(node.icon)"><component :is="resolveIcon(node.icon)" /></el-icon>
             <span>{{ node.menuName }}</span>
           </el-menu-item>
         </template>
@@ -124,6 +124,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Bell, Delete } from '@element-plus/icons-vue'
+import { resolveIcon } from '../icons/index.js'
 import { useUserStore } from '../stores/user'
 import { usePermissionStore } from '../stores/permission'
 import { logout } from '../api/auth'
