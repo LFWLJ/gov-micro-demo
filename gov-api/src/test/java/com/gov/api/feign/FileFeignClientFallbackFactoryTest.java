@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Feign 降级工厂回归测试。
  *
  * <p>重点：**任何降级方法都不得返回 null**。
- * 原实现 {@code getStats()} 返回 null，调用方（HelloController）会直接 NPE，
+ * 原实现 {@code getStats()} 返回 null，调用方（ApplicationController）会直接 NPE，
  * 把"文件服务不可用"变成"业务接口 500"，这里把它钉住。
  *
  * <p>本模块（gov-api）是纯契约库，没有 {@code @SpringBootApplication}，

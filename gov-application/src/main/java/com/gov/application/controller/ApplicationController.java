@@ -29,15 +29,11 @@ import java.util.Map;
  * 创建办件时会自动启动对应的 Flowable 审批流程（{@code leaveApproval}）。
  * 本 Controller 同时演示了 Feign 调用跨服务能力（调 gov-file 获取预签名下载地址）。
  * </p>
- * <p>
- * TODO：类名叫 HelloController 是历史遗留，建议后续重命名为 ApplicationController
- * 并同步修改网关路由 /api/application/** 的转发规则。
- * </p>
  */
 @Tag(name = "事项管理")
 @RestController
 @RequestMapping("/api/application")
-public class HelloController {
+public class ApplicationController {
 
     @Autowired
     private ApplicationBizService bizService;
