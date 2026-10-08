@@ -15,9 +15,18 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * gov-auth 的租户/用户上下文过滤器
- * 从网关注入的请求头中提取 X-Tenant-Id、X-User-Id，写入 ThreadLocal
- * 与 gov-application 的 TenantFilter 保持一致的风格
+ * gov-auth 服务的租户/用户上下文过滤器
+ * <p>
+ * 从网关注入的请求头 {@code X-Tenant-Id}、{@code X-User-Id} 中提取上下文，
+ * 写入 {@link TenantContext} / {@link UserContext} ThreadLocal，
+ * 并把 tenantId 写入 MDC 用于日志打印。
+ * </p>
+ *
+ * <p>与 {@link com.gov.file.config.TenantFilter} 和 gov-application 的 TenantFilter
+ * 保持相同的职责分工，但各自放在本服务的 config 包内以避免循环依赖。</p>
+ *
+ * <p>必须在请求结束时（finally 块）清理 ThreadLocal，
+ * 否则 Tomcat 线程池复用时会串租户 / 串用户。</p>
  */
 @Component
 @Order(1)

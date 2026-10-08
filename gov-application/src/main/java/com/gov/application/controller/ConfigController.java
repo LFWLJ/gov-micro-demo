@@ -12,6 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 系统配置 HTTP 接口
+ * <p>
+ * KV 型配置管理，configKey 同租户内唯一。读取走 Redis 缓存（30 分钟过期），
+ * 写操作后立即清缓存。
+ * </p>
+ */
 @Tag(name = "系统配置")
 @RestController
 @RequestMapping("/api/config")

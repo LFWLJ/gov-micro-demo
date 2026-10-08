@@ -17,6 +17,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 部门管理实现
+ * <p>
+ * 提供部门树构建、级联子部门查询、CRUD 等能力。
+ * 所有写操作均按 {@code TenantContext} 填充 tenantId，
+ * 读操作依赖 MyBatis-Plus 租户插件自动隔离。
+ * 删除前做安全校验：有子部门或有用户关联时禁止删除。
+ * </p>
+ */
 @Service
 public class DeptServiceImpl implements DeptService {
 
@@ -26,6 +35,13 @@ public class DeptServiceImpl implements DeptService {
     @Autowired
     private SysUserMapper sysUserMapper;
 
+    /**
+     * 构建部门树（一次查询 + 内存组装）
+     * <p>
+     * 查询全部部门后在 Java 内存里根据 parentId 组装成多叉树结构，
+     * 返回根节点列表，每个节点的 {@code children} 字段携带子部门。
+     * </p>
+     */
     @Override
     public List<Dept> tree() {
         List<Dept> all = deptMapper.selectList(
@@ -47,6 +63,9 @@ public class DeptServiceImpl implements DeptService {
         return roots;
     }
 
+    /**
+     * 递归查询指定部门及其所有子部门 ID（用于数据权限「本部门及以下」）
+     */
     @Override
     public List<Long> getSelfAndChildIds(Long deptId) {
         List<Long> result = new ArrayList<>();
@@ -65,6 +84,7 @@ public class DeptServiceImpl implements DeptService {
         }
     }
 
+    /** 创建部门，默认 parentId=0、orderNum=0、status=1 */
     @Override
     public Long create(Dept dept) {
         if (!StringUtils.hasText(dept.getDeptName())) {
@@ -84,6 +104,7 @@ public class DeptServiceImpl implements DeptService {
         return dept.getId();
     }
 
+    /** 更新部门，禁止 parentId 指向自身 */
     @Override
     public void update(Dept dept) {
         if (dept.getId() == null) {
@@ -100,6 +121,7 @@ public class DeptServiceImpl implements DeptService {
         deptMapper.updateById(dept);
     }
 
+    /** 删除部门，有子部门或有用户关联时禁止删除 */
     @Override
     public void delete(Long id) {
         Dept dept = deptMapper.selectById(id);

@@ -21,6 +21,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 统计报表 HTTP 接口
+ * <p>
+ * 提供按时间范围的汇总 / 按部门 / 按日期三个维度的聚合查询，
+ * 以及办件明细的 Excel 导出（基于 EasyExcel，UTF-8 + filename* 规范编码，支持中文文件名）。
+ * </p>
+ */
 @Tag(name = "统计报表")
 @RestController
 @RequestMapping("/api/report")

@@ -12,6 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 附件关联 HTTP 接口
+ * <p>
+ * 负责维护业务对象（办件 / 证照 / 咨询等）与 MinIO 文件之间的多对多关联关系，
+ * 本身不直接操作 MinIO 对象存储，文件的物理上传 / 删除由 {@link FileController} 统一负责。
+ * 租户标识通过 {@code X-Tenant-Id} 请求头透传（网关鉴权后注入）。
+ * </p>
+ */
 @Tag(name = "附件关联")
 @RestController
 @RequestMapping("/api/attachment")

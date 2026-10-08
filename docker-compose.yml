@@ -36,9 +36,10 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       TZ: Asia/Shanghai
-    # 仅绑定本机：避免 3306 暴露到局域网
+    # 仅绑定本机；宿主端口用 13306，避免与本机已安装的 MySQL80 服务(3306)冲突。
+    # 应用走 docker 网络访问 mysql:3306，不受宿主端口影响。
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:13306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
@@ -66,9 +67,10 @@ services:
     image: redis:7-alpine
     container_name: gov-redis
     restart: unless-stopped
-    # 仅绑定本机 + 强制认证
+    # 仅绑定本机 + 强制认证；宿主端口用 16379，避免与本机已安装的 Redis 服务(6379)冲突。
+    # 应用走 docker 网络访问 redis:6379，不受宿主端口影响。
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:16379:6379"
     volumes:
       - redis-data:/data
     command:

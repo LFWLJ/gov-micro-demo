@@ -12,6 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 好差评 HTTP 接口
+ * <p>
+ * 1~5 星评价提交 + 差评整改闭环。系统自动把 score≤2 的标记为差评，
+ * 差评需在整改端点提交整改内容后才能进入 RECTIFIED 状态。
+ * </p>
+ */
 @Tag(name = "好差评")
 @RestController
 @RequestMapping("/api/evaluation")

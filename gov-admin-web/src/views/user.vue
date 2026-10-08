@@ -29,6 +29,17 @@
       </el-table-column>
     </el-table>
 
+    <el-pagination
+      style="margin-top:12px; justify-content:flex-end;"
+      background
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total"
+      :current-page="query.page"
+      :page-size="query.size"
+      :page-sizes="[10, 20, 50, 100]"
+      @current-change="onPageChange"
+      @size-change="onSizeChange" />
+
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑' : '新增'" width="480px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="用户名">
@@ -41,9 +52,12 @@
           <el-input v-model="form.realName" />
         </el-form-item>
         <el-form-item label="角色">
-          <el-select v-model="form.roles" style="width:100%">
-            <el-option label="管理员" value="ROLE_ADMIN" />
-            <el-option label="普通用户" value="ROLE_USER" />
+          <el-select v-model="form.roles" style="width:100%" placeholder="请选择角色">
+            <el-option
+              v-for="r in roleOptions"
+              :key="r.roleKey + '@' + r.tenantId"
+              :label="r.tenantId ? `${r.roleName} (${r.roleKey}) · ${r.tenantId}` : `${r.roleName} (${r.roleKey})`"
+              :value="r.roleKey" />
           </el-select>
         </el-form-item>
         <el-form-item label="部门ID">
@@ -76,10 +90,35 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pageUsers, createUser, updateUser, deleteUser } from '../api/user'
+import { getAllRoles } from '../api/role'
 
 const list = ref([])
+const total = ref(0)
 const loading = ref(false)
 const dialogVisible = ref(false)
+
+// 表格走分页接口（不再用 /all 一次性拉全量），并补上分页控件
+const query = reactive({ page: 1, size: 10 })
+
+// 角色下拉仍用「查全部」接口：下拉需要完整候选集，且该接口只对管理员开放
+const DEFAULT_ROLES = [
+  { roleKey: 'ROLE_ADMIN', roleName: '管理员', tenantId: '' },
+  { roleKey: 'ROLE_USER', roleName: '普通用户', tenantId: '' }
+]
+const roleOptions = ref([...DEFAULT_ROLES])
+
+async function loadRoles() {
+  try {
+    // silent：非管理员调用会被权限拦下，不该弹错误提示，静默回退到默认两项即可
+    const res = await getAllRoles({ silent: true })
+    if (res.code === 200 && Array.isArray(res.data) && res.data.length) {
+      roleOptions.value = res.data
+    }
+  } catch (e) {
+    // 保留默认两项，避免下拉为空
+  }
+}
+
 const form = reactive({
   id: null, username: '', password: '', realName: '',
   roles: 'ROLE_USER', deptId: 1, dataScope: 3, status: 1
@@ -88,13 +127,25 @@ const form = reactive({
 async function load() {
   loading.value = true
   try {
-    const res = await pageUsers({ page: 1, size: 20 })
+    const res = await pageUsers({ page: query.page, size: query.size })
     if (res.code === 200) {
       list.value = res.data.records || []
+      total.value = res.data.total || 0
     }
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p) {
+  query.page = p
+  load()
+}
+
+function onSizeChange(s) {
+  query.size = s
+  query.page = 1
+  load()
 }
 
 function openDialog(row) {
@@ -129,5 +180,8 @@ async function handleDelete(row) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadRoles()
+})
 </script>

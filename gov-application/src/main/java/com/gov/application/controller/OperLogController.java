@@ -19,6 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 操作日志查询接口
+ * <p>
+ * 只读接口，直接走 {@code OperLogMapper} 分页查询 {@code sys_oper_log}。
+ * 表本身在租户插件的忽略列表里，但这里手动注入 {@code TenantContext.get()}
+ * 并在详情查询时做租户归属校验（防止跨租户越权看别人的日志）。
+ * </p>
+ */
 @Tag(name = "操作日志")
 @RestController
 @RequestMapping("/api/operlog")

@@ -3,6 +3,7 @@ package com.gov.auth.service;
 import com.gov.auth.dto.UserSaveDTO;
 import com.gov.auth.entity.SysUser;
 
+import java.util.List;
 import java.util.Map;
 
 public interface UserService {
@@ -14,6 +15,9 @@ public interface UserService {
     SysUser login(String username, String password);
 
     Map<String, Object> page(int page, int size, String keyword);
+
+    /** 查询全部用户（跨租户、不分页），供下拉选择/分配用户等场景使用 */
+    List<SysUser> allUsers();
 
     Long create(UserSaveDTO dto);
 

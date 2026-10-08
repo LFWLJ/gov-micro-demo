@@ -9,6 +9,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 消息中心 HTTP 接口
+ * <p>
+ * 站内通知的只读查询 + 标已读 / 删除。
+ * 所有写操作都需要传 receiver 参数，服务端会做归属校验（防越权删别人的消息）。
+ * </p>
+ */
 @Tag(name = "消息中心")
 @RestController
 @RequestMapping("/api/notify")

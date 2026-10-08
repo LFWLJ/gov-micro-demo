@@ -52,19 +52,29 @@ INSERT IGNORE INTO `sys_menu`
 -- 系统配置（父菜单 45）
 (522,45,'配置新增','F',NULL,NULL,'sys:config:add',NULL,1,1,1,NOW()),
 (523,45,'配置修改','F',NULL,NULL,'sys:config:edit',NULL,2,1,1,NOW()),
-(524,45,'配置删除','F',NULL,NULL,'sys:config:del',NULL,3,1,1,NOW());
+(524,45,'配置删除','F',NULL,NULL,'sys:config:del',NULL,3,1,1,NOW()),
+-- 查询全部（跨租户）—— 仅管理员可见，普通用户拿不到，故不授予角色 2
+(525,40,'查看全部用户','F',NULL,NULL,'sys:user:all',NULL,9,1,1,NOW()),
+(526,42,'查看全部角色','F',NULL,NULL,'sys:role:all',NULL,9,1,1,NOW()),
+-- 预约办理（原来这三个端点无任何校验，同租户任意登录用户都能改别人的预约状态）
+(527,12,'预约签到/办结','F',NULL,NULL,'biz:appointment:handle',NULL,1,1,1,NOW()),
+(528,12,'取消预约','F',NULL,NULL,'biz:appointment:cancel',NULL,2,1,1,NOW()),
+-- 文件删除（破坏性操作）
+(529,6,'删除文件','F',NULL,NULL,'biz:file:del',NULL,3,1,1,NOW());
 
 -- ---------- 2. 管理员角色：授予全部新增权限 ----------
 INSERT IGNORE INTO `sys_role_menu` (`role_id`,`menu_id`)
 SELECT r.id, m.id FROM `sys_role` r
-JOIN `sys_menu` m ON m.id BETWEEN 501 AND 524
+JOIN `sys_menu` m ON m.id BETWEEN 501 AND 529
 WHERE r.role_key = 'ROLE_ADMIN';
 
 -- ---------- 3. 普通用户角色：仅授予日常经办权限 ----------
--- 不含：证照签发/吊销、审批完成、部门/字典/系统配置的维护
+-- 不含：证照签发/吊销、审批完成、部门/字典/系统配置维护、
+--       跨租户查看全部（525/526）、取消他人预约（528）、删除文件（529）
 INSERT IGNORE INTO `sys_role_menu` (`role_id`,`menu_id`) VALUES
 (2,503),  -- 事项创建
 (2,507),(2,508),  -- 指南新增/修改
 (2,510),(2,511),  -- 工单回复/关闭
 (2,513),  -- 差评整改
-(2,514),(2,515);  -- 附件关联/删除
+(2,514),(2,515),  -- 附件关联/删除
+(2,527);  -- 预约签到/办结（大厅经办属办事员职责，故授予）

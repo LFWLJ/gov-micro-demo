@@ -15,6 +15,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 电子证照 HTTP 接口
+ * <p>
+ * 提供证照发放 / 吊销 / 分页查询 / 模板列表等管理能力，
+ * 以及两个公开端点（免鉴权）：
+ * <ul>
+ *     <li>{@code GET /verify/{code}}：扫码验真，验真码全局唯一，跨租户查询</li>
+ *     <li>{@code GET /download/{id}}：按需渲染并流式输出 PDF（含二维码 + 中文字体）</li>
+ * </ul>
+ * </p>
+ */
 @Tag(name = "电子证照")
 @RestController
 @RequestMapping("/api/license")

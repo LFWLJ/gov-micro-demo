@@ -2,6 +2,16 @@ package com.gov.application.mq;
 
 import java.io.Serializable;
 
+/**
+ * 通知消息体
+ * <p>
+ * 作为 RocketMQ 的消息载体，跨服务/异步传递业务事件通知。
+ * 所有字段均为业务通用的通知元信息，不绑定具体业务对象。
+ * </p>
+ *
+ * @see com.gov.application.mq.NotifyProducer
+ * @see com.gov.application.mq.NotifyConsumer
+ */
 public class NotifyMessage implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -49,7 +59,10 @@ public class NotifyMessage implements Serializable {
     public void setTimestamp(Long timestamp) { this.timestamp = timestamp; }
 
     /**
-     * 静态工厂方法
+     * 创建通知消息
+     * <p>
+     * 消息时间戳自动取当前系统时间，用于消费者侧的顺序判断或延迟丢弃。
+     * </p>
      */
     public static NotifyMessage of(String type, Long bizId, String bizKey,
                                    String tenantId, String receiver, String content) {

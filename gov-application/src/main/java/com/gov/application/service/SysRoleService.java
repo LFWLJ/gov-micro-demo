@@ -14,6 +14,9 @@ public interface SysRoleService {
 
     SysRole getById(Long id);        // ← 就是这个，检查有没有
 
+    /** 查询全部角色（跨租户、不分页），供下拉选择等场景使用 */
+    List<SysRole> allRoles();
+
     void addRole(SysRole role);
 
     void updateRole(SysRole role);

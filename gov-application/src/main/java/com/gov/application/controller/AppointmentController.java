@@ -3,6 +3,7 @@ package com.gov.application.controller;
 import com.gov.application.entity.Appointment;
 import com.gov.application.service.AppointmentService;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 预约取号 HTTP 接口
+ * <p>
+ * 政务大厅现场预约的全生命周期：创建预约（自动生成排队号）→ 现场签到 → 窗口办结 → 取消预约。
+ * 提供今日排队列表 + 今日统计两个实时查询端点，供大厅电子屏展示。
+ * </p>
+ */
 @Tag(name = "预约取号")
 @RestController
 @RequestMapping("/api/appointment")
@@ -39,6 +47,7 @@ public class AppointmentController {
     }
 
     @Operation(summary = "签到")
+    @RequiresPerm("biz:appointment:handle")
     @PostMapping("/checkin/{id}")
     @OpLog(module = "预约取号", operation = "签到")
     public R<Void> checkin(@PathVariable("id") Long id) {
@@ -47,6 +56,7 @@ public class AppointmentController {
     }
 
     @Operation(summary = "办结")
+    @RequiresPerm("biz:appointment:handle")
     @PostMapping("/finish/{id}")
     @OpLog(module = "预约取号", operation = "办结")
     public R<Void> finish(@PathVariable("id") Long id) {
@@ -55,6 +65,7 @@ public class AppointmentController {
     }
 
     @Operation(summary = "取消预约")
+    @RequiresPerm("biz:appointment:cancel")
     @PostMapping("/cancel/{id}")
     @OpLog(module = "预约取号", operation = "取消预约")
     public R<Void> cancel(@PathVariable("id") Long id,

@@ -20,6 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 工作台 HTTP 接口
+ * <p>
+ * 聚合当前用户视角的三个维度数据：待办审批任务、我发起的申请、站内未读消息。
+ * 把三个子查询合成一个接口返回，减少前端请求次数。
+ * </p>
+ */
 @Tag(name = "工作台")
 @RestController
 @RequestMapping("/api/workspace")

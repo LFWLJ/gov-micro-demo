@@ -20,6 +20,14 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * 字典管理实现（含 Redis 缓存）
+ * <p>
+ * 维护字典类型 ({@link SysDictType}) 和字典项 ({@link SysDict}) 的两级结构。
+ * 字典项读取走 Redis 缓存（tenantId:dictType → List），30 分钟过期；
+ * 写操作（增删改）完成后立即清除对应缓存，保证数据一致性。
+ * </p>
+ */
 @Service
 public class DictServiceImpl implements DictService {
 
@@ -34,6 +42,7 @@ public class DictServiceImpl implements DictService {
 
     private static final String CACHE_PREFIX = "dict:";
 
+    /** 字典类型列表 */
     @Override
     public List<Map<String, Object>> listTypes() {
         List<SysDictType> types = dictTypeMapper.selectList(
@@ -48,6 +57,7 @@ public class DictServiceImpl implements DictService {
         }).collect(Collectors.toList());
     }
 
+    /** 按字典类型查询启用状态的字典项（DB 直查，不走缓存） */
     @Override
     public List<SysDict> listByType(String dictType) {
         return dictMapper.selectList(
@@ -57,6 +67,7 @@ public class DictServiceImpl implements DictService {
                         .orderByAsc(SysDict::getSort));
     }
 
+    /** 按字典类型查询字典项（带 Redis 缓存，30 分钟过期） */
     @Override
     @SuppressWarnings("unchecked")
     public List<SysDict> listByTypeCached(String dictType) {
@@ -73,6 +84,7 @@ public class DictServiceImpl implements DictService {
         return list;
     }
 
+    /** 创建字典类型（dictType 同租户内唯一） */
     @Override
     public Long createType(SysDictType type) {
         if (!StringUtils.hasText(type.getDictType())) throw new BizException("类型编码不能为空");
@@ -89,6 +101,7 @@ public class DictServiceImpl implements DictService {
         return type.getId();
     }
 
+    /** 创建字典项（同类型下 dictValue 唯一），写后清缓存 */
     @Override
     public Long create(SysDict dict) {
         if (!StringUtils.hasText(dict.getDictType())) throw new BizException("字典类型不能为空");

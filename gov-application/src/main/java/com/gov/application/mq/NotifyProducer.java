@@ -8,6 +8,28 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+/**
+ * RocketMQ 通知生产者
+ * <p>
+ * 负责将 {@link NotifyMessage} 投递到 {@link #TOPIC} 主题。
+ * 被 {@link com.gov.application.service.impl.ProcessBizServiceImpl} 等业务服务调用，
+ * 在审批流程节点流转后推送异步通知（待办提醒、通过通知、评价邀请等）。
+ * </p>
+ *
+ * <h3>事务安全消息</h3>
+ * 若调用方处于 Spring 事务中（{@code @Transactional} 方法内），
+ * 本类会通过 {@link TransactionSynchronizationManager} 注册 afterCommit 回调，
+ * 等事务真正提交成功后才发送消息，避免「消息已发、事务随后回滚」的数据不一致。
+ * 非事务场景下则立即发送。
+ *
+ * <h3>发送失败处理</h3>
+ * 通知属于旁路能力，发送失败不应阻断主业务流程。
+ * 因此 catch 块只打 error 日志（显式标记消息已丢失便于后续对账补偿），
+ * 不向上抛出异常。
+ *
+ * @see NotifyConsumer
+ * @see NotifyMessage
+ */
 @Component
 public class NotifyProducer {
 

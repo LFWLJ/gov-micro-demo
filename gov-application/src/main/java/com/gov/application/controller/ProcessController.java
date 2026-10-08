@@ -14,6 +14,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 审批流程 HTTP 接口（基于 Flowable）
+ * <p>
+ * 直接操作工作流引擎的端点：发起流程 / 查询待办 / 完成任务 / 查流程状态 / 查流程轨迹。
+ * 业务上更推荐通过 {@link HelloController} 的办件端点间接操作，本 Controller 暴露给
+ * 需要绕过办件层直接操作流程的场景（如纯审批任务）。
+ * </p>
+ */
 @Tag(name = "审批流程")
 @RestController
 @RequestMapping("/api/process")

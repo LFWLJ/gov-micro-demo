@@ -11,8 +11,20 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
+/**
+ * 用户管理 HTTP 接口
+ * <p>
+ * 既提供后台用户管理（分页 / 新增 / 修改 / 删除 / 重置密码），
+ * 也提供前端「个人中心」自服务（获取当前用户 / 修改个人信息 / 修改密码）。
+ * 个人中心类端点通过请求头 {@code X-User-Id} 获取当前登录人，
+ * 该 header 由网关 {@code TenantAuthGlobalFilter} 在鉴权后自动注入。
+ * 敏感写操作（新增 / 修改 / 删除 / 重置密码）加了 {@code @OpLog}，
+ * 密码相关接口统一 {@code saveParams = false} 避免明文密码入日志。
+ * </p>
+ */
 @Tag(name = "用户管理")
 @RestController
 @RequestMapping("/api/auth/user")
@@ -20,6 +32,13 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Operation(summary = "查询全部用户（跨租户、不分页，仅管理员）")
+    @RequiresPerm("sys:user:all")
+    @GetMapping("/all")
+    public R<List<SysUser>> all() {
+        return R.ok(userService.allUsers());
+    }
 
     @Operation(summary = "分页查询用户")
     @GetMapping("/page")

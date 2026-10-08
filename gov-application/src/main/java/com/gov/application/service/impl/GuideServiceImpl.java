@@ -17,6 +17,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 办事指南管理实现
+ * <p>
+ * 维护办事指南（事项名称、指南编码、分类、办理流程、材料等），
+ * 供前端大厅展示市民可办理事项清单。guideCode 同租户内唯一。
+ * </p>
+ */
 @Service
 public class GuideServiceImpl implements GuideService {
 

@@ -20,12 +20,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * 敏感词管理实现
+ * <p>
+ * 提供敏感词的 CRUD + 批量导入能力。
+ * 同租户内敏感词唯一（依赖 MyBatis-Plus 租户插件自动拼 tenant_id），
+ * 批量导入时先查已存在集合，避免逐条唯一键冲突导致插入中断。
+ * </p>
+ */
 @Service
 public class SensitiveWordServiceImpl implements SensitiveWordService {
 
     @Resource
     private SensitiveWordMapper sensitiveWordMapper;
 
+    /** 分页查询敏感词，支持按关键词模糊搜 + 分类精确过滤 */
     @Override
     public IPage<SensitiveWord> pageWords(SensitiveWordQueryDTO query) {
         LambdaQueryWrapper<SensitiveWord> qw = new LambdaQueryWrapper<>();
@@ -37,6 +46,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         return sensitiveWordMapper.selectPage(new Page<>(pageNum, pageSize), qw);
     }
 
+    /** 新增敏感词，trim 后同租户内唯一校验 */
     @Override
     public void addWord(SensitiveWord word) {
         if (!StringUtils.hasText(word.getWord())) {
@@ -58,6 +68,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         sensitiveWordMapper.insert(word);
     }
 
+    /** 更新敏感词，不允许修改 tenantId */
     @Override
     public void updateWord(SensitiveWord word) {
         if (word.getId() == null) throw new BizException("ID不能为空");
@@ -82,6 +93,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         sensitiveWordMapper.updateById(word);
     }
 
+    /** 删除敏感词 */
     @Override
     public void deleteWord(Long id) {
         if (id == null) throw new BizException("ID不能为空");
@@ -90,6 +102,18 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         sensitiveWordMapper.deleteById(id);
     }
 
+    /**
+     * 批量导入敏感词
+     * <p>
+     * 执行步骤：
+     * <ol>
+     *     <li>输入去重 + 去空白</li>
+     *     <li>一次查询同租户已存在的敏感词集合</li>
+     *     <li>只插入不存在的，忽略唯一键冲突</li>
+     * </ol>
+     * 返回实际新增条数。
+     * </p>
+     */
     @Override
     public int batchAdd(BatchAddDTO dto) {
         if (dto == null || CollectionUtils.isEmpty(dto.getWords())) {

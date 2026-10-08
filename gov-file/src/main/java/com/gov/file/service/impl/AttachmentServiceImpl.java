@@ -21,6 +21,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 附件关联业务实现
+ * <p>
+ * 管理业务对象（办件、证照等）与 MinIO 文件之间的多对多关联关系。
+ * 本服务<strong>不</strong>直接操作 MinIO 对象，文件的上传 / 删除由
+ * {@link com.gov.file.service.FileService} 统一负责，
+ * 删除附件关联时只清数据库，不删 MinIO 对象（避免误伤被其他业务引用的文件）。
+ * </p>
+ * <p>
+ * 典型场景：一个办件可以挂多张材料文件，通过 bizType + bizId 关联查询。
+ * </p>
+ *
+ * @see com.gov.file.service.FileService
+ */
 @Service
 public class AttachmentServiceImpl implements AttachmentService {
 
@@ -30,6 +44,12 @@ public class AttachmentServiceImpl implements AttachmentService {
     @Autowired
     private FileInfoMapper fileInfoMapper;
 
+    /**
+     * 保存附件关联记录
+     * <p>
+     * 要求 bizType、bizId、fileId 均必填，tenantId 来自调用方上下文。
+     * </p>
+     */
     @Override
     public Long save(AttachmentSaveDTO dto, String tenantId) {
         if (!StringUtils.hasText(dto.getBizType())) {
@@ -55,6 +75,9 @@ public class AttachmentServiceImpl implements AttachmentService {
         return a.getId();
     }
 
+    /**
+     * 按业务对象查询附件列表，批量回填 FileInfo 的 objectName / size / contentType
+     */
     @Override
     public List<AttachmentVO> listByBiz(String bizType, Long bizId, String tenantId) {
         if (!StringUtils.hasText(bizType) || bizId == null) {
@@ -107,6 +130,9 @@ public class AttachmentServiceImpl implements AttachmentService {
         return result;
     }
 
+    /**
+     * 删除附件关联（只清数据库，不删 MinIO 对象，避免误删被其他业务引用的文件）
+     */
     @Override
     public void delete(Long id, String tenantId) {
         if (id == null) throw new BizException("id 不能为空");

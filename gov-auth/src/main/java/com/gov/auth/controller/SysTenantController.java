@@ -11,6 +11,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 租户管理 HTTP 接口
+ * <p>
+ * 提供租户的分页查询 / 详情 / 新增 / 修改 / 删除能力。
+ * 新增 / 修改 / 删除接口均加了权限注解 {@code @RequiresPerm}，要求
+ * 登录用户具备相应的菜单权限（sys:tenant:add / sys:tenant:edit / sys:tenant:del）。
+ * 由于 {@code sys_tenant} 本身是租户元数据表，MyBatis-Plus 租户插件不对它拼 tenant_id，
+ * 因此这里的查询 / 修改 / 删除都是跨租户可见的，实际使用中建议仅开放给超级管理员。
+ * </p>
+ */
 @Tag(name = "租户管理")
 @RestController
 @RequestMapping("/api/auth/tenant")

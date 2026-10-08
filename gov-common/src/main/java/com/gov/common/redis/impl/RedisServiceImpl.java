@@ -9,12 +9,28 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Redis 服务默认实现
+ * <p>
+ * 基于 {@link RedisTemplate} 封装常用操作，分布式锁部分额外维护一条 Lua 脚本
+ * （{@code UNLOCK_SCRIPT}），保证释放锁时"比较 value + 删除"的原子性。
+ * </p>
+ *
+ * @see RedisService
+ */
 @Component
 public class RedisServiceImpl implements RedisService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    /**
+     * 释放锁的 Lua 脚本
+     * <p>
+     * 先判断 KEYS[1] 当前值是否等于 ARGV[1]（锁持有者的唯一标识），
+     * 只有相等时才执行 DEL，防止误删他人在锁过期后重新获取的锁。
+     * </p>
+     */
     private static final String UNLOCK_SCRIPT =
             "if redis.call('get', KEYS[1]) == ARGV[1] then " +
             "  return redis.call('del', KEYS[1]) " +
@@ -22,6 +38,7 @@ public class RedisServiceImpl implements RedisService {
             "  return 0 " +
             "end";
 
+    /** Lua 脚本执行器，单例复用 */
     private final DefaultRedisScript<Long> unlockScript =
             new DefaultRedisScript<>(UNLOCK_SCRIPT, Long.class);
 
@@ -65,6 +82,10 @@ public class RedisServiceImpl implements RedisService {
         return redisTemplate.opsForValue().increment(key, delta);
     }
 
+    /**
+     * 尝试获取分布式锁
+     * <p>底层等价于 Redis 命令：{@code SET key value NX EX timeout}</p>
+     */
     @Override
     public boolean tryLock(String key, String value, long timeoutSeconds) {
         Boolean ok = redisTemplate.opsForValue()
@@ -72,6 +93,10 @@ public class RedisServiceImpl implements RedisService {
         return Boolean.TRUE.equals(ok);
     }
 
+    /**
+     * 使用 Lua 脚本原子释放分布式锁
+     * <p>返回值 1 = 释放成功，0 = 释放失败（value 不匹配或 key 已不存在）</p>
+     */
     @Override
     public boolean releaseLock(String key, String value) {
         Long result = redisTemplate.execute(unlockScript,

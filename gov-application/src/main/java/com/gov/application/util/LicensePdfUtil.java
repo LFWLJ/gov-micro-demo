@@ -26,6 +26,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 电子证照 PDF 生成工具
+ * <p>
+ * 基于 Apache PDFBox 2.x 渲染 A4 横向 PDF，嵌入：
+ * <ul>
+ *     <li>证照编号、持证人、发证机关、有效期等信息</li>
+ *     <li>右下角 120x120 二维码（指向公开验真页）</li>
+ *     <li>身份证号自动脱敏（前6 + 后4）</li>
+ * </ul>
+ * 中文字体加载优先级：-D 参数 → 环境变量 → classpath 内置 → 系统兜底。
+ * 字体字节做进程内双重检查锁缓存，避免每次渲染都读取约 10MB 字体文件。
+ * </p>
+ */
 public class LicensePdfUtil {
 
     /**
@@ -106,6 +119,17 @@ public class LicensePdfUtil {
 
     /**
      * 生成电子证照 PDF
+     *
+     * @param licenseNo    证照编号
+     * @param templateName 模板名称（显示为大标题）
+     * @param holderName   持证人姓名
+     * @param holderIdCard 持证人身份证号（自动脱敏）
+     * @param issueDept    发证机关
+     * @param issueDate    发证日期
+     * @param expireDate   有效期至（可为空）
+     * @param content      证照附加内容（可为空）
+     * @param verifyUrl    验真链接（会生成为二维码）
+     * @return PDF 字节数组
      */
     public static byte[] generate(String licenseNo, String templateName,
                                   String holderName, String holderIdCard,

@@ -28,6 +28,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 工作流业务实现（基于 Flowable）
+ * <p>
+ * 封装请假审批流程（{@code leaveApproval}）的全生命周期：
+ * <ul>
+ *     <li><b>启动流程</b>：创建流程实例 + 自动通知第一个待办处理人</li>
+ *     <li><b>查询待办</b>：按租户 + 处理人过滤当前任务</li>
+ *     <li><b>完成任务</b>：提交变量推进流程；若流程结束，回写办件状态为 APPROVED，
+ *         并异步通知申请人 + 发送评价邀请</li>
+ *     <li><b>流程状态/轨迹</b>：运行时状态查询 + 历史任务节点回放</li>
+ * </ul>
+ * 所有流程操作均携带 tenantId，保证多租户隔离。
+ * </p>
+ */
 @Service
 public class ProcessBizServiceImpl implements ProcessBizService {
 
@@ -53,6 +67,19 @@ public class ProcessBizServiceImpl implements ProcessBizService {
     @Autowired
     private NotifyProducer notifyProducer;
 
+    /**
+     * 启动请假审批流程
+     * <p>
+     * 使用 {@code businessKey}（办件 ID）关联业务表，
+     * 同时把 applicant 和 tenantId 写入流程变量，便于后续节点读取。
+     * 启动成功后，向部门负责人发送 TASK_CREATED 通知。
+     * </p>
+     *
+     * @param businessKey 业务主键（办件 ID）
+     * @param applicant   申请人
+     * @param variables   流程变量（如 deptLeader）
+     * @return 流程实例元信息
+     */
     @Override
     @Transactional
     public Map<String, Object> startProcess(String businessKey,
@@ -93,6 +120,9 @@ public class ProcessBizServiceImpl implements ProcessBizService {
         return result;
     }
 
+    /**
+     * 查询指定处理人的待办任务列表（按租户隔离）
+     */
     @Override
     public List<Map<String, Object>> listTasks(String assignee) {
         String tenantId = TenantContext.get();
@@ -117,6 +147,27 @@ public class ProcessBizServiceImpl implements ProcessBizService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * 完成审批任务（事务内）
+     * <p>
+     * 执行步骤：
+     * <ol>
+     *     <li>校验任务存在且属于当前租户</li>
+     *     <li>调用 Flowable taskService.complete 推进流程</li>
+     *     <li>向当前处理人发送 TASK_COMPLETED 通知</li>
+     *     <li>若任务完成后流程实例已无剩余任务，则：
+     *         <ul>
+     *             <li>回写办件状态为 APPROVED</li>
+     *             <li>写入办件日志</li>
+     *             <li>异步通知申请人审批通过</li>
+     *             <li>发送评价邀请通知</li>
+     *         </ul>
+     *     </li>
+     * </ol>
+     * 流程结束后的办件状态回写失败会触发整个事务回滚，
+     * 避免留下「流程已结束、办件仍是 PENDING」的数据不一致。
+     * </p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void completeTask(String taskId, Map<String, Object> variables) {
@@ -206,6 +257,9 @@ public class ProcessBizServiceImpl implements ProcessBizService {
         }
     }
 
+    /**
+     * 查询流程实例当前状态（运行中 / 已结束）
+     */
     @Override
     public Map<String, Object> getProcessStatus(String processInstanceId) {
         String tenantId = TenantContext.get();
@@ -242,6 +296,12 @@ public class ProcessBizServiceImpl implements ProcessBizService {
         return result;
     }
 
+    /**
+     * 查询流程完整轨迹（历史节点回放）
+     * <p>
+     * 包含流程基本信息 + 每个历史任务节点（处理人、起止时间、耗时）。
+     * </p>
+     */
     @Override
     public Map<String, Object> getProcessTrace(String processInstanceId) {
         String tenantId = TenantContext.get();

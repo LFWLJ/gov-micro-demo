@@ -8,6 +8,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * 文件服务 Feign 降级工厂
+ * <p>
+ * 当 gov-file 服务不可达（网络异常、超时、5xx）时，由该工厂产生降级实现。
+ * 所有方法统一返回 {@code R.fail(503, "...")}，避免调用方 NPE，
+ * 并通过 {@code log.error} 记录原始异常方便排查。
+ * </p>
+ */
 @Component
 public class FileFeignClientFallbackFactory implements FallbackFactory<FileFeignClient> {
 
@@ -29,7 +37,6 @@ public class FileFeignClientFallbackFactory implements FallbackFactory<FileFeign
 
             @Override
             public R<Map<String, Object>> getStats() {
-                // ★ 原来返回 null，调用方直接 NPE；降级也应返回结构化的失败响应
                 return R.fail(503, "文件服务暂时不可用，请稍后重试");
             }
         };

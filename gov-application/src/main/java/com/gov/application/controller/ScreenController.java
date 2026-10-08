@@ -24,6 +24,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 数据大屏 HTTP 接口
+ * <p>
+ * 面向领导驾驶舱的数据总览接口，在单个 {@code GET /overview} 中一次性打包输出：
+ * 核心指标（办件总数、待办、审批率、平均办结时长）、近 7 天趋势、状态分布、
+ * 部门办件排名、24 小时分布、预约 / 好差评 / 证照 / 指南 / 咨询等各业务模块统计。
+ * 文件统计通过 Feign 远程调用 gov-file 服务获取。
+ * </p>
+ * <p>
+ * 注意：本接口一次性查询多个业务表 + Flowable 历史表，数据量大时可能成为性能瓶颈，
+ * 生产建议改成定时任务预计算写入独立统计表，本接口只查聚合表。
+ * </p>
+ */
 @Tag(name = "数据大屏")
 @RestController
 @RequestMapping("/api/screen")
@@ -38,6 +51,7 @@ public class ScreenController {
     @Autowired private LicenseMapper licenseMapper;
     @Autowired private GuideMapper guideMapper;
     @Autowired private ConsultMapper consultMapper;
+    @Autowired private ScreenStatMapper screenStatMapper;
     @Autowired private TaskService taskService;
     @Autowired private HistoryService historyService;
 
@@ -52,8 +66,13 @@ public class ScreenController {
         Map<String, Object> data = new HashMap<>();
 
         // ============ 1. 核心指标 ============
+        // 一次分组查询拿到各状态计数，total / approved / statusDist 都从它派生（原来要 6 条 count）
+        List<Map<String, Object>> statusRows = screenStatMapper.countApplicationByStatus();
+        Map<String, Long> statusCounts = toCountMap(statusRows);
+        long totalApplications = sumAll(statusRows);
+        long approved = countOf(statusCounts, "APPROVED");
+
         Map<String, Object> overview = new HashMap<>();
-        Long totalApplications = applicationMapper.selectCount(new LambdaQueryWrapper<>());
         Long pendingTasks = taskService.createTaskQuery()
                 .taskTenantId(tenantId).count();
         Long userCount = sysUserMapper.selectCount(
@@ -64,9 +83,6 @@ public class ScreenController {
                 new LambdaQueryWrapper<Application>()
                         .ge(Application::getCreateTime, today.atStartOfDay()));
 
-        Long approved = applicationMapper.selectCount(
-                new LambdaQueryWrapper<Application>()
-                        .eq(Application::getStatus, "APPROVED"));
         double approvalRate = totalApplications == 0 ? 0 :
                 (double) approved / totalApplications;
 
@@ -92,26 +108,23 @@ public class ScreenController {
         overview.put("avgHours", Math.round(avgHours * 10) / 10.0);
         data.put("overview", overview);
 
-        // ============ 2. 近 7 天趋势 ============
+        // ============ 2. 近 7 天趋势（2 条聚合 + Java 补零，替代原来 14 条 count）============
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
+        LocalDate trendStart = today.minusDays(6);
+        Map<String, Long> newByDay = toCountMap(
+                screenStatMapper.countApplicationByDay(trendStart.atStartOfDay()));
+        Map<String, Long> doneByDay = toCountMap(
+                screenStatMapper.countOperLogByDay(trendStart.atStartOfDay()));
+
         List<String> days = new ArrayList<>();
         List<Long> newTrend = new ArrayList<>();
         List<Long> doneTrend = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate d = today.minusDays(i);
-            LocalDateTime start = d.atStartOfDay();
-            LocalDateTime end = d.plusDays(1).atStartOfDay();
-
+            String key = d.toString();
             days.add(d.format(fmt));
-            newTrend.add(applicationMapper.selectCount(
-                    new LambdaQueryWrapper<Application>()
-                            .ge(Application::getCreateTime, start)
-                            .lt(Application::getCreateTime, end)));
-            doneTrend.add(operLogMapper.selectCount(
-                    new LambdaQueryWrapper<OperLog>()
-                            .ge(OperLog::getCreateTime, start)
-                            .lt(OperLog::getCreateTime, end)
-                            .eq(OperLog::getResult, 1)));
+            newTrend.add(newByDay.getOrDefault(key, 0L));
+            doneTrend.add(doneByDay.getOrDefault(key, 0L));
         }
         Map<String, Object> trend = new HashMap<>();
         trend.put("days", days);
@@ -121,13 +134,13 @@ public class ScreenController {
 
         // ============ 3. 事项状态分布 ============
         List<Map<String, Object>> statusDist = new ArrayList<>();
-        statusDist.add(buildStatusItem("草稿", "DRAFT", "#909399"));
-        statusDist.add(buildStatusItem("待审批", "PENDING", "#e6a23c"));
-        statusDist.add(buildStatusItem("已通过", "APPROVED", "#67c23a"));
-        statusDist.add(buildStatusItem("已驳回", "REJECTED", "#f56c6c"));
+        statusDist.add(buildStatusItem("草稿", "DRAFT", "#909399", statusCounts));
+        statusDist.add(buildStatusItem("待审批", "PENDING", "#e6a23c", statusCounts));
+        statusDist.add(buildStatusItem("已通过", "APPROVED", "#67c23a", statusCounts));
+        statusDist.add(buildStatusItem("已驳回", "REJECTED", "#f56c6c", statusCounts));
         data.put("statusDist", statusDist);
 
-        // ============ 4. 部门办件排名 ============
+        // ============ 4. 部门办件排名（聚合 Top5，替代"整表捞进内存再分组"）============
         List<Dept> depts = deptMapper.selectList(new LambdaQueryWrapper<>());
         Map<Long, String> deptNameMap = depts.stream()
                 .collect(Collectors.toMap(
@@ -135,110 +148,86 @@ public class ScreenController {
                         d -> d.getDeptName() == null ? "未命名" : d.getDeptName(),
                         (a, b) -> a));
 
-        List<Application> allApps = applicationMapper.selectList(new LambdaQueryWrapper<>());
-        Map<Long, Long> deptCountMap = allApps.stream()
-                .filter(a -> a.getDeptId() != null)
-                .collect(Collectors.groupingBy(Application::getDeptId, Collectors.counting()));
-
-        List<Map<String, Object>> deptRank = deptCountMap.entrySet().stream()
-                .map(e -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("name", deptNameMap.getOrDefault(e.getKey(), "未知部门"));
-                    m.put("value", e.getValue());
-                    return m;
-                })
-                .sorted((a, b) -> Long.compare(
-                        ((Number) b.get("value")).longValue(),
-                        ((Number) a.get("value")).longValue()))
-                .limit(5)
-                .collect(Collectors.toList());
+        List<Map<String, Object>> deptRank = new ArrayList<>();
+        for (Map<String, Object> row : screenStatMapper.topDeptByApplication(5)) {
+            Object k = row.get("k");
+            if (k == null) continue;
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", deptNameMap.getOrDefault(((Number) k).longValue(), "未知部门"));
+            m.put("value", row.get("v") == null ? 0L : ((Number) row.get("v")).longValue());
+            deptRank.add(m);
+        }
         data.put("deptRank", deptRank);
 
-        // ============ 5. 24 小时办件分布 ============
+        // ============ 5. 24 小时办件分布（1 条聚合替代 24 条 count）============
+        Map<String, Long> byHour = toCountMap(screenStatMapper.countApplicationByHour(
+                today.atStartOfDay(), today.plusDays(1).atStartOfDay()));
         List<Long> hourDist = new ArrayList<>();
         for (int h = 0; h < 24; h++) {
-            LocalDateTime hs = today.atTime(h, 0);
-            LocalDateTime he = hs.plusHours(1);
-            hourDist.add(applicationMapper.selectCount(
-                    new LambdaQueryWrapper<Application>()
-                            .ge(Application::getCreateTime, hs)
-                            .lt(Application::getCreateTime, he)));
+            hourDist.add(byHour.getOrDefault(String.valueOf(h), 0L));
         }
         data.put("hourDist", hourDist);
 
-        // ============ 6. 预约取号 ============
+        // ============ 6. 预约取号（1 条聚合替代 4 条 count）============
+        List<Map<String, Object>> apptRows = screenStatMapper.countAppointmentByStatus(today);
+        Map<String, Long> apptByStatus = toCountMap(apptRows);
         Map<String, Object> appointmentStat = new HashMap<>();
-        appointmentStat.put("todayTotal", appointmentMapper.selectCount(
-                new LambdaQueryWrapper<Appointment>()
-                        .eq(Appointment::getAppointDate, today)));
-        appointmentStat.put("todayBooked", appointmentMapper.selectCount(
-                new LambdaQueryWrapper<Appointment>()
-                        .eq(Appointment::getAppointDate, today)
-                        .eq(Appointment::getStatus, "BOOKED")));
-        appointmentStat.put("todayChecked", appointmentMapper.selectCount(
-                new LambdaQueryWrapper<Appointment>()
-                        .eq(Appointment::getAppointDate, today)
-                        .eq(Appointment::getStatus, "CHECKED")));
-        appointmentStat.put("todayDone", appointmentMapper.selectCount(
-                new LambdaQueryWrapper<Appointment>()
-                        .eq(Appointment::getAppointDate, today)
-                        .eq(Appointment::getStatus, "DONE")));
+        appointmentStat.put("todayTotal", sumAll(apptRows));
+        appointmentStat.put("todayBooked", countOf(apptByStatus, "BOOKED"));
+        appointmentStat.put("todayChecked", countOf(apptByStatus, "CHECKED"));
+        appointmentStat.put("todayDone", countOf(apptByStatus, "DONE"));
         data.put("appointment", appointmentStat);
 
         // ============ 7. 好差评 ============
+        // 这四个指标维度互不相同（总/评分/是否差评/整改状态），无法用一条 GROUP BY 表达；
+        // 而 CASE/CAST 组合会让租户拦截器的 JSqlParser 解析失败，故保持 4 条简单 count。
         Map<String, Object> evaluationStat = new HashMap<>();
         Long evalTotal = evaluationMapper.selectCount(new LambdaQueryWrapper<>());
         Long goodCount = evaluationMapper.selectCount(
                 new LambdaQueryWrapper<Evaluation>().ge(Evaluation::getScore, 4));
-        Long badCount = evaluationMapper.selectCount(
-                new LambdaQueryWrapper<Evaluation>().eq(Evaluation::getIsBad, 1));
-        Long pendingRectify = evaluationMapper.selectCount(
-                new LambdaQueryWrapper<Evaluation>()
-                        .eq(Evaluation::getRectifyStatus, "PENDING"));
         evaluationStat.put("total", evalTotal);
         evaluationStat.put("goodCount", goodCount);
-        evaluationStat.put("badCount", badCount);
-        evaluationStat.put("pendingRectify", pendingRectify);
+        evaluationStat.put("badCount", evaluationMapper.selectCount(
+                new LambdaQueryWrapper<Evaluation>().eq(Evaluation::getIsBad, 1)));
+        evaluationStat.put("pendingRectify", evaluationMapper.selectCount(
+                new LambdaQueryWrapper<Evaluation>()
+                        .eq(Evaluation::getRectifyStatus, "PENDING")));
         evaluationStat.put("goodRate", evalTotal == 0 ? 0 :
                 Math.round(goodCount * 100.0 / evalTotal));
         data.put("evaluation", evaluationStat);
 
-        // ============ 8. 电子证照 ============
+        // ============ 8. 电子证照（1 条分组 + 1 条 count，替代原 4 条）============
+        List<Map<String, Object>> licRows = screenStatMapper.countLicenseByStatus();
+        Map<String, Long> licByStatus = toCountMap(licRows);
         Map<String, Object> licenseStat = new HashMap<>();
-        licenseStat.put("total", licenseMapper.selectCount(new LambdaQueryWrapper<>()));
-        licenseStat.put("valid", licenseMapper.selectCount(
-                new LambdaQueryWrapper<License>().eq(License::getStatus, "VALID")));
-        licenseStat.put("revoked", licenseMapper.selectCount(
-                new LambdaQueryWrapper<License>().eq(License::getStatus, "REVOKED")));
+        licenseStat.put("total", sumAll(licRows));
+        licenseStat.put("valid", countOf(licByStatus, "VALID"));
+        licenseStat.put("revoked", countOf(licByStatus, "REVOKED"));
         licenseStat.put("thisMonth", licenseMapper.selectCount(
                 new LambdaQueryWrapper<License>()
-                        .ge(License::getCreateTime,
-                                today.withDayOfMonth(1).atStartOfDay())));
+                        .ge(License::getCreateTime, today.withDayOfMonth(1).atStartOfDay())));
         data.put("license", licenseStat);
 
-        // ============ 9. 办事指南 ============
+        // ============ 9. 办事指南（1 条分组 + 1 条 count distinct，替代原 3 条）============
+        List<Map<String, Object>> guideRows = screenStatMapper.countGuideByStatus();
+        Map<String, Long> guideByStatus = toCountMap(guideRows);
+        long guideTotal = sumAll(guideRows);
+        Long catCount = screenStatMapper.countGuideCategory();
         Map<String, Object> guideStat = new HashMap<>();
-        Long guideTotal = guideMapper.selectCount(new LambdaQueryWrapper<>());
         guideStat.put("total", guideTotal);
-        guideStat.put("enabled", guideMapper.selectCount(
-                new LambdaQueryWrapper<Guide>().eq(Guide::getStatus, 1)));
-        long categoryCount = guideMapper.selectList(new LambdaQueryWrapper<>()).stream()
-                .map(Guide::getCategory)
-                .filter(c -> c != null && !c.isEmpty())
-                .distinct()
-                .count();
-        guideStat.put("categoryCount", categoryCount);
+        // guide.status 是整型 1/0，分组键经 String.valueOf 归一化后为 "1"
+        guideStat.put("enabled", countOf(guideByStatus, "1"));
+        guideStat.put("categoryCount", catCount == null ? 0L : catCount);
         data.put("guide", guideStat);
 
-        // ============ 10. 咨询投诉 ============
+        // ============ 10. 咨询投诉（1 条分组替代原 4 条 count）============
+        List<Map<String, Object>> consultRows = screenStatMapper.countConsultByStatus();
+        Map<String, Long> consultByStatus = toCountMap(consultRows);
         Map<String, Object> consultStat = new HashMap<>();
-        consultStat.put("total", consultMapper.selectCount(new LambdaQueryWrapper<>()));
-        consultStat.put("pending", consultMapper.selectCount(
-                new LambdaQueryWrapper<Consult>().eq(Consult::getStatus, "PENDING")));
-        consultStat.put("processing", consultMapper.selectCount(
-                new LambdaQueryWrapper<Consult>().eq(Consult::getStatus, "PROCESSING")));
-        consultStat.put("done", consultMapper.selectCount(
-                new LambdaQueryWrapper<Consult>().eq(Consult::getStatus, "DONE")));
+        consultStat.put("total", sumAll(consultRows));
+        consultStat.put("pending", countOf(consultByStatus, "PENDING"));
+        consultStat.put("processing", countOf(consultByStatus, "PROCESSING"));
+        consultStat.put("done", countOf(consultByStatus, "DONE"));
         data.put("consult", consultStat);
 
         // ============ 11. 文件（Feign 调 gov-file）============
@@ -287,14 +276,41 @@ public class ScreenController {
         return R.ok(data);
     }
 
-    private Map<String, Object> buildStatusItem(String name, String status, String color) {
+    private Map<String, Object> buildStatusItem(String name, String status, String color,
+                                                Map<String, Long> statusCounts) {
         Map<String, Object> m = new HashMap<>();
         m.put("name", name);
-        m.put("value", applicationMapper.selectCount(
-                new LambdaQueryWrapper<Application>()
-                        .eq(Application::getStatus, status)));
+        m.put("value", countOf(statusCounts, status));
         m.put("color", color);
         return m;
+    }
+
+    /** 把 (k, v) 形式的分组计数转成 Map；键为 null 的分组不参与按名取用（但仍计入 sumAll） */
+    private Map<String, Long> toCountMap(List<Map<String, Object>> rows) {
+        Map<String, Long> map = new HashMap<>();
+        if (rows == null) return map;
+        for (Map<String, Object> row : rows) {
+            Object k = row.get("k");
+            if (k == null) continue;
+            Object v = row.get("v");
+            map.put(String.valueOf(k), v == null ? 0L : ((Number) v).longValue());
+        }
+        return map;
+    }
+
+    /** 汇总所有分组的计数（含键为 null 的分组），等价于原来的无条件 count */
+    private long sumAll(List<Map<String, Object>> rows) {
+        long sum = 0;
+        if (rows == null) return 0;
+        for (Map<String, Object> row : rows) {
+            Object v = row.get("v");
+            if (v != null) sum += ((Number) v).longValue();
+        }
+        return sum;
+    }
+
+    private long countOf(Map<String, Long> counts, String key) {
+        return counts.getOrDefault(key, 0L);
     }
 
     private Map<String, Object> buildModuleStat(String name, Object value) {

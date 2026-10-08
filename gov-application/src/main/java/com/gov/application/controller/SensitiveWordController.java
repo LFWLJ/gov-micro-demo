@@ -12,6 +12,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 敏感词管理 HTTP 接口
+ * <p>
+ * 提供敏感词的分页查询 + CRUD + 批量导入能力。批量导入时会先去重再插入，
+ * 遇到唯一键冲突会静默跳过（返回实际新增条数）。
+ * </p>
+ */
 @Tag(name = "敏感词管理")
 @RestController
 @RequestMapping("/api/sensitive")

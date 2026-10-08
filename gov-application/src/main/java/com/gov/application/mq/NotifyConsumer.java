@@ -9,6 +9,27 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * RocketMQ 通知消费者
+ * <p>
+ * 订阅 {@link NotifyProducer#TOPIC} 主题，消费 {@link NotifyMessage} 消息。
+ * 实际业务中此处应对接短信网关 / 邮件服务 / App 推送通道，
+ * 当前为演示目的，仅打印模拟短信日志。
+ * </p>
+ *
+ * <h3>设计要点</h3>
+ * <ul>
+ *   <li><b>租户上下文恢复</b>：从消息体的 {@code tenantId} 字段恢复
+ *       {@link TenantContext}，保证后续如要查库仍能走多租户隔离</li>
+ *   <li><b>异常重抛触发重试</b>：catch 块末尾 <b>必须重新抛出异常</b>，
+ *       RocketMQ 收到异常才会进行重试；吞掉异常等于直接 ack，消息会被永久丢弃</li>
+ *   <li><b>at-least-once 语义</b>：若业务要求严格幂等，应引入 msgId + Redis 去重，
+ *       防止重复消费造成重复通知</li>
+ * </ul>
+ *
+ * @see NotifyProducer
+ * @see NotifyMessage
+ */
 @Component
 @RocketMQMessageListener(
         topic = NotifyProducer.TOPIC,

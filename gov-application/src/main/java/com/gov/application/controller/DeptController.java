@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 部门管理 HTTP 接口
+ * <p>
+ * 提供部门树查询 + CRUD。删除部门前会校验：有子部门或有用户关联时禁止删除。
+ * </p>
+ */
 @Tag(name = "部门管理")
 @RestController
 @RequestMapping("/api/dept")

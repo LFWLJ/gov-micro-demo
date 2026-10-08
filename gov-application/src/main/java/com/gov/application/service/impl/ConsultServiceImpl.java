@@ -21,6 +21,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 咨询投诉工单业务实现
+ * <p>
+ * 提供工单创建 / 回复 / 关闭 / 删除 / 统计：
+ * <ul>
+ *     <li><b>工单号</b>：{@code CON-yyyyMMdd-NNN} 格式，使用 Redis 原子自增生成当日流水号，
+ *         key 首次自增时设置过期时间到当天 24 点，自然回收。</li>
+ *     <li><b>状态流转</b>：PENDING → PROCESSING → DONE（回复即办结）/ CLOSED。</li>
+ *     <li><b>统计</b>：按状态维度计数。</li>
+ * </ul>
+ * </p>
+ */
 @Service
 public class ConsultServiceImpl implements ConsultService {
 
@@ -32,6 +44,7 @@ public class ConsultServiceImpl implements ConsultService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
+    /** 分页查询工单，支持按关键词（标题/联系人/工单号）+ 类型 + 状态过滤 */
     @Override
     public Map<String, Object> page(int page, int size, String keyword,
                                     String type, String status) {
@@ -58,6 +71,13 @@ public class ConsultServiceImpl implements ConsultService {
         return data;
     }
 
+    /**
+     * 创建咨询投诉工单
+     * <p>
+     * 工单号使用 Redis 原子自增生成当日流水号（避免并发重号），
+     * 格式 {@code CON-yyyyMMdd-NNN}。
+     * </p>
+     */
     @Override
     public Long create(Consult consult) {
         if (!StringUtils.hasText(consult.getTitle())) {
@@ -106,6 +126,7 @@ public class ConsultServiceImpl implements ConsultService {
         return seq;
     }
 
+    /** 回复工单（回复后状态置为 DONE），已办结/已关闭的工单不允许重复回复 */
     @Override
     public void reply(Long id, String handler, String reply) {
         if (!StringUtils.hasText(reply)) {
@@ -126,6 +147,7 @@ public class ConsultServiceImpl implements ConsultService {
         consultMapper.updateById(consult);
     }
 
+    /** 关闭工单（状态置为 CLOSED） */
     @Override
     public void close(Long id) {
         Consult consult = consultMapper.selectById(id);
@@ -136,6 +158,7 @@ public class ConsultServiceImpl implements ConsultService {
         consultMapper.updateById(consult);
     }
 
+    /** 删除工单 */
     @Override
     public void delete(Long id) {
         Consult consult = consultMapper.selectById(id);
@@ -145,6 +168,7 @@ public class ConsultServiceImpl implements ConsultService {
         consultMapper.deleteById(id);
     }
 
+    /** 工单统计：按 PENDING/PROCESSING/DONE 状态维度计数 */
     @Override
     public Map<String, Object> stats() {
         Map<String, Object> result = new HashMap<>();

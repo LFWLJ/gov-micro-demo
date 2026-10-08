@@ -8,6 +8,13 @@ import io.swagger.v3.oas.models.Components;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Swagger / OpenAPI 配置（gov-auth 服务）
+ * <p>
+ * 统一设置 API 文档标题、版本，并注册 Bearer JWT 认证方案，
+ * 使 Swagger UI 右上角出现 Authorize 按钮，调试时可以直接填 Token。
+ * </p>
+ */
 @Configuration
 public class OpenApiConfig {
 

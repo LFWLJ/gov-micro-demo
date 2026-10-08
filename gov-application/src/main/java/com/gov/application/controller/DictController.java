@@ -14,6 +14,13 @@ import com.gov.application.entity.SysDictType;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 数据字典 HTTP 接口
+ * <p>
+ * 字典类型 + 字典项两级结构。读接口走 Redis 缓存（由 {@code DictServiceImpl.listByTypeCached} 提供），
+ * 写操作完成后立即清缓存，保证数据一致性。
+ * </p>
+ */
 @Tag(name = "数据字典")
 @RestController
 @RequestMapping("/api/dict")

@@ -15,6 +15,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 角色管理 HTTP 接口
+ * <p>
+ * 角色 CRUD + 角色与菜单 / 用户的关联分配。
+ * 所有写操作端点加了 {@code @RequiresPerm} 权限校验，防止越权改角色。
+ * </p>
+ */
 @Tag(name = "角色管理")
 @RestController
 @RequestMapping("/api/role")
@@ -27,6 +34,13 @@ public class SysRoleController {
     @PostMapping("/page")
     public R<IPage<SysRole>> page(@RequestBody RoleQueryDTO query) {
         return R.ok(sysRoleService.pageRoles(query));
+    }
+
+    @Operation(summary = "查询全部角色（跨租户、不分页，仅管理员）")
+    @RequiresPerm("sys:role:all")
+    @GetMapping("/all")
+    public R<List<SysRole>> all() {
+        return R.ok(sysRoleService.allRoles());
     }
 
     @Operation(summary = "角色详情")

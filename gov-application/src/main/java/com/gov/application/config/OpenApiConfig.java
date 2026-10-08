@@ -8,6 +8,13 @@ import io.swagger.v3.oas.models.Components;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Swagger / OpenAPI 配置（gov-application 服务）
+ * <p>
+ * 与 gov-auth 的 OpenApiConfig 结构一致，独立配置是因为各微服务单独部署、
+ * 各自暴露自己的 Swagger UI。
+ * </p>
+ */
 @Configuration
 public class OpenApiConfig {
 

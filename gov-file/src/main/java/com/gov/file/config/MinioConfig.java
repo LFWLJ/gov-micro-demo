@@ -10,6 +10,15 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * MinIO 对象存储配置
+ * <p>
+ * 初始化 MinIO 客户端 Bean，并在启动时自动检查/创建 bucket。
+ * bucket 的 endpoint、accessKey、secretKey、名称均通过 {@link MinioProperties} 配置注入。
+ * </p>
+ *
+ * @see MinioProperties
+ */
 @Configuration
 @EnableConfigurationProperties(MinioProperties.class)
 public class MinioConfig {
@@ -19,6 +28,13 @@ public class MinioConfig {
     @Autowired
     private MinioProperties props;
 
+    /**
+     * 创建 MinIO 客户端
+     * <p>
+     * 启动时自动检查目标 bucket 是否存在，不存在则创建。
+     * bucket 初始化失败只记日志不阻断启动（可能是首次部署时 MinIO 还未就绪）。
+     * </p>
+     */
     @Bean
     public MinioClient minioClient() {
         MinioClient client = MinioClient.builder()

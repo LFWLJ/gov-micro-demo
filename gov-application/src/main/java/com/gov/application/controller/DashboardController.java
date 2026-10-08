@@ -26,6 +26,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 仪表盘 HTTP 接口
+ * <p>
+ * 为管理后台首页提供汇总统计（办件总数、各状态分布、待办数、近 7 天趋势等）。
+ * 只暴露一个 {@code GET /stats} 端点，内部直接走 Mapper 做聚合查询（避免 Service 层额外封装）。
+ * </p>
+ */
 @Tag(name = "仪表盘")
 @RestController
 @RequestMapping("/api/dashboard")

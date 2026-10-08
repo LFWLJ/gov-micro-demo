@@ -199,7 +199,7 @@ import {
   getRoleUsers, assignRoleUsers
 } from '../api/role'
 import { getMenuTree } from '../api/menu'
-import { pageUsers } from '../api/user'
+import { getAllUsers } from '../api/user'
 
 // ========== 角色列表 ==========
 const list = ref([])
@@ -420,12 +420,13 @@ async function openUserDialog(row) {
   userLoading.value = true
   try {
     const [userRes, assignedRes] = await Promise.all([
-      pageUsers({ page: 1, size: 999 }),
+      // silent：非管理员会被权限拦下，这里自行给出更明确的提示，避免弹出后端原文
+      getAllUsers({ silent: true }),
       getRoleUsers(row.id)
     ])
 
     if (userRes.code === 200) {
-      allUsers.value = userRes.data.records || []
+      allUsers.value = userRes.data || []
       filteredUsers.value = [...allUsers.value]
     }
     const assignedIds = new Set(assignedRes.data || [])
@@ -438,6 +439,11 @@ async function openUserDialog(row) {
         userTableRef.value.toggleRowSelection(u, true)
       }
     })
+  } catch (e) {
+    // 兜住 rejection，避免未捕获的 Promise 错误，同时说清原因
+    allUsers.value = []
+    filteredUsers.value = []
+    ElMessage.error(e?.msg || '加载用户列表失败：需要「查看全部用户」权限')
   } finally {
     userLoading.value = false
   }

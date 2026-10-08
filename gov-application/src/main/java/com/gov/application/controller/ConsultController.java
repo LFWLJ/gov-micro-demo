@@ -12,6 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 咨询投诉工单 HTTP 接口
+ * <p>
+ * 市民提交咨询 / 投诉的入口，以及后台回复工单 / 关闭工单 / 删除工单的管理端点。
+ * 工单号由 Redis 原子自增生成，同日内不重复。
+ * </p>
+ */
 @Tag(name = "咨询投诉")
 @RestController
 @RequestMapping("/api/consult")

@@ -11,6 +11,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 菜单管理 HTTP 接口
+ * <p>
+ * 负责系统菜单的 CRUD，同时暴露两个给前端动态路由和按钮权限用的端点：
+ * <ul>
+ *     <li>{@code GET /routers}：返回当前登录用户可见的菜单树（前端生成路由）</li>
+ *     <li>{@code GET /permissions}：返回当前用户的按钮权限标识列表</li>
+ * </ul>
+ * 菜单本身在租户插件的忽略列表里（全局配置，不按租户隔离）。
+ * </p>
+ */
 @Tag(name = "菜单管理")
 @RestController
 @RequestMapping("/api/menu")

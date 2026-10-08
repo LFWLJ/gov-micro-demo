@@ -27,4 +27,12 @@ public interface SysRoleMenuMapper {
             "</foreach>" +
             "</script>")
     int batchInsert(@Param("roleId") Long roleId, @Param("menuIds") List<Long> menuIds);
+
+    /** 全部启用菜单（含按钮权限）——新建 ROLE_ADMIN 时使用 */
+    @Select("SELECT id FROM sys_menu WHERE status = 1 ORDER BY id")
+    List<Long> selectAllMenuIds();
+
+    /** 只含目录/菜单节点、**不含按钮权限**——新建普通角色时使用，避免预置危险操作 */
+    @Select("SELECT id FROM sys_menu WHERE status = 1 AND menu_type != 'F' ORDER BY id")
+    List<Long> selectNavigableMenuIds();
 }

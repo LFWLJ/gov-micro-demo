@@ -4,6 +4,11 @@ export function pageRoles(data) {
   return api.post('/api/role/page', data)
 }
 
+/** 查询全部角色（跨租户、不分页，仅管理员）；config 可传 { silent: true } 抑制错误提示 */
+export function getAllRoles(config = {}) {
+  return api.get('/api/role/all', config)
+}
+
 export function createRole(data) {
   return api.post('/api/role', data)
 }

@@ -4,6 +4,11 @@ export function pageUsers(params) {
   return api.get('/api/auth/user/page', { params })
 }
 
+/** 查询全部用户（跨租户、不分页，仅管理员）；config 可传 { silent: true } 抑制错误提示 */
+export function getAllUsers(config = {}) {
+  return api.get('/api/auth/user/all', config)
+}
+
 export function createUser(data) {
   return api.post('/api/auth/user', data)
 }

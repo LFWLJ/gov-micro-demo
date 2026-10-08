@@ -14,6 +14,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 办件统计报表实现
+ * <p>
+ * 提供按部门 / 按日期 / 汇总等多维度的办件量统计，以及明细列表查询。
+ * 所有查询都走 MyBatis-Plus 的租户插件，自动按 tenantId 隔离。
+ * </p>
+ */
 @Service
 public class ReportServiceImpl implements ReportService {
 
@@ -23,6 +30,7 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private DeptMapper deptMapper;
 
+    /** 按部门汇总办件量（总数 / 已通过 / 待处理 / 草稿），按总数倒序 */
     @Override
     public List<Map<String, Object>> statByDept(String startTime, String endTime) {
         List<Application> apps = queryByTime(startTime, endTime);
@@ -57,6 +65,7 @@ public class ReportServiceImpl implements ReportService {
         return result;
     }
 
+    /** 按日期汇总办件量（每日总数），按日期升序 */
     @Override
     public List<Map<String, Object>> statByDate(String startTime, String endTime) {
         List<Application> apps = queryByTime(startTime, endTime);
@@ -78,6 +87,7 @@ public class ReportServiceImpl implements ReportService {
         return result;
     }
 
+    /** 时间段内办件汇总：总数 / 已通过 / 待处理 / 草稿 */
     @Override
     public Map<String, Object> summary(String startTime, String endTime) {
         List<Application> apps = queryByTime(startTime, endTime);
@@ -92,6 +102,7 @@ public class ReportServiceImpl implements ReportService {
         return result;
     }
 
+    /** 办件明细列表，支持时间范围 + 部门过滤 */
     @Override
     public List<Application> detailList(String startTime, String endTime, Long deptId) {
         LambdaQueryWrapper<Application> wrapper = new LambdaQueryWrapper<>();

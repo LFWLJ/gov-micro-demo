@@ -64,12 +64,25 @@ docker compose ps
 
 服务	地址
 前端	http://localhost
-Nacos	http://localhost:8080/nacos
+Nacos 控制台	http://localhost:8080/
 MinIO	http://localhost:9001
-网关	http://localhost:8090
+网关（仅 API，浏览器打开根路径会 404）	http://localhost:8090
 默认账号：admin / 123456 / tenant_a
 
 注意事项：
+
+Nacos 3.x 的控制台在 **8080 端口的根路径 `/`**（`http://localhost:8080/nacos` 会返回 500）；
+8848 是服务端 API 端口，访问 `/nacos` 只会看到一句“Console default port is 8080”的提示。
+
+网关是纯 API 网关，只转发 `/api/**`，**没有网页界面**：
+用浏览器打开 `http://localhost:8090/` 必然 404，这是正常的，不是服务没起来。
+验证网关是否正常请用接口，例如：
+
+```bash
+curl -X POST http://localhost:8090/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"123456"}'
+```
 
 MinIO 镜像：官方 minio/minio 已下架，本项目用 pgsty/silo（兼容 fork）
 
@@ -175,10 +188,11 @@ docker compose up -d
 启动后访问 Knife4j：
 
 服务	地址
-网关聚合	http://localhost:8090/doc.html
 认证中心	http://localhost:8081/doc.html
 业务服务	http://localhost:8082/doc.html
 文件服务	http://localhost:8083/doc.html
+
+> 网关未做 Knife4j 聚合，`http://localhost:8090/doc.html` 是 404；请直接访问上面各服务的文档。
 九、License
 MIT
 

@@ -21,6 +21,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 事项（办件）管理 HTTP 接口
+ * <p>
+ * 政务大厅的核心业务入口，负责办件的创建 / 查询 / 驳回 / 撤回，
+ * 以及办件关联的审批流程轨迹查看、流转日志查看。
+ * 创建办件时会自动启动对应的 Flowable 审批流程（{@code leaveApproval}）。
+ * 本 Controller 同时演示了 Feign 调用跨服务能力（调 gov-file 获取预签名下载地址）。
+ * </p>
+ * <p>
+ * TODO：类名叫 HelloController 是历史遗留，建议后续重命名为 ApplicationController
+ * 并同步修改网关路由 /api/application/** 的转发规则。
+ * </p>
+ */
 @Tag(name = "事项管理")
 @RestController
 @RequestMapping("/api/application")

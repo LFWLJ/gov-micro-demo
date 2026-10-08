@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.gov.file.entity.FileInfo;
 import com.gov.file.mapper.FileInfoMapper;
 import com.gov.common.log.OpLog;
+import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
-import com.gov.file.mapper.FileInfoMapper;
 import com.gov.file.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +23,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 文件服务 HTTP 接口
+ * <p>
+ * 对外暴露文件上传 / 下载 / 预签名 URL / 删除 / 统计等能力，
+ * 内部委托 {@link com.gov.file.service.FileService} 完成 MinIO 操作和数据库记录。
+ * 该 Controller 同时提供给 Feign 客户端（{@code FileFeignClient}）调用，
+ * Feign 调用时由 {@code FeignTokenInterceptor} 透传租户 / 用户上下文。
+ * </p>
+ *
+ * @see com.gov.file.service.FileService
+ * @see com.gov.api.feign.FileFeignClient
+ */
 @Tag(name = "文件服务", description = "上传、下载、删除")
 @RestController
 @RequestMapping("/api/file")
@@ -64,6 +76,7 @@ public class FileController {
     }
 
     @Operation(summary = "删除文件")
+    @RequiresPerm("biz:file:del")
     @DeleteMapping
     @OpLog(module = "文件服务", operation = "删除文件")
     public R<Void> delete(@RequestParam String objectName) {

@@ -13,6 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 办事指南 HTTP 接口
+ * <p>
+ * 政务大厅向市民展示的可办事项清单，支持按关键词搜索 + 分类过滤。
+ * 后台管理端点（新增 / 修改 / 删除 / 切换状态）均加了 {@code @RequiresPerm}。
+ * </p>
+ */
 @Tag(name = "办事指南")
 @RestController
 @RequestMapping("/api/guide")
