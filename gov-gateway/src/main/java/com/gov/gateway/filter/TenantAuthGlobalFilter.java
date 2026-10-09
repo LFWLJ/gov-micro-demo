@@ -83,6 +83,34 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
     }
 
     /**
+     * 从 Authorization 头解析出 JWT。
+     *
+     * <p>标准写法是 {@code Bearer <token>}，这里**同时兼容裸 token**：
+     * Knife4j / Swagger 文档页的「全局参数」里通常只填 token 本身，
+     * 若严格按 {@code Bearer } 前缀判定，文档调试会一直 401，排查成本很高。
+     * 两种写法后续都要通过签名校验，安全性一致。
+     *
+     * <p>形如 {@code Basic xxx} 的其它认证方案不接受，避免把别的凭据误当 JWT。
+     *
+     * @return 去掉前缀后的 token；缺失或不合法返回 null
+     */
+    private String extractToken(String auth) {
+        if (auth == null || auth.isEmpty()) {
+            return null;
+        }
+        String value = auth.trim();
+        if (value.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            String token = value.substring(7).trim();
+            return token.isEmpty() ? null : token;
+        }
+        // 含空格的其它 scheme（Basic/Digest 等）不接受
+        if (value.indexOf(' ') > 0) {
+            return null;
+        }
+        return value;
+    }
+
+    /**
      * 执行鉴权过滤。流程：
      * <ol>
      *     <li>匹配白名单 → 剥离伪造头后直接放行</li>
@@ -110,8 +138,9 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
         }
 
         String auth = exchange.getRequest().getHeaders().getFirst("Authorization");
-        if (auth == null || !auth.startsWith("Bearer ")) {
-            return unauthorized(exchange, "缺少 Token");
+        String token = extractToken(auth);
+        if (token == null) {
+            return unauthorized(exchange, "缺少 Token（请使用 Authorization: Bearer <token>）");
         }
 
         Claims claims;
@@ -119,7 +148,7 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
             claims = Jwts.parser()
                     .verifyWith(key())
                     .build()
-                    .parseSignedClaims(auth.substring(7))
+                    .parseSignedClaims(token)
                     .getPayload();
         } catch (Exception e) {
             return unauthorized(exchange, "Token 无效或已过期");
@@ -132,7 +161,7 @@ public class TenantAuthGlobalFilter implements GlobalFilter, Ordered {
         String did = claims.get("did", String.class);
         Integer ds = claims.get("ds", Integer.class);
 
-        String blacklistKey = "token:blacklist:" + auth.substring(7);
+        String blacklistKey = "token:blacklist:" + token;
 
         String traceId = exchange.getRequest().getHeaders().getFirst("X-Trace-Id");
 

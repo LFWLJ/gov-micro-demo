@@ -1,5 +1,6 @@
 package com.gov.application.controller;
 
+import com.gov.application.dto.AppointmentCancelDTO;
 import com.gov.application.entity.Appointment;
 import com.gov.application.service.AppointmentService;
 import com.gov.common.log.OpLog;
@@ -69,8 +70,8 @@ public class AppointmentController {
     @PostMapping("/cancel/{id}")
     @OpLog(module = "预约取号", operation = "取消预约")
     public R<Void> cancel(@PathVariable("id") Long id,
-                          @RequestBody(required = false) Map<String, String> body) {
-        appointmentService.cancel(id, body == null ? null : body.get("reason"));
+                          @RequestBody(required = false) AppointmentCancelDTO body) {
+        appointmentService.cancel(id, body == null ? null : body.getReason());
         return R.ok("已取消", null);
     }
 

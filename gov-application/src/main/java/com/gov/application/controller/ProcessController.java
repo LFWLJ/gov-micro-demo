@@ -1,5 +1,7 @@
 package com.gov.application.controller;
 
+import com.gov.application.dto.ProcessCompleteDTO;
+import com.gov.application.dto.ProcessStartDTO;
 import com.gov.application.service.ProcessBizService;
 import com.gov.common.log.OpLog;
 import com.gov.common.perm.RequiresPerm;
@@ -7,6 +9,7 @@ import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,11 +37,9 @@ public class ProcessController {
     @RequiresPerm("biz:process:start")
     @PostMapping("/start")
     @OpLog(module = "审批流程", operation = "发起流程")
-    public R<Map<String, Object>> start(@RequestBody Map<String, Object> body) {
-        String businessKey = (String) body.remove("businessKey");
-        String applicant = (String) body.remove("applicant");
+    public R<Map<String, Object>> start(@Valid @RequestBody ProcessStartDTO body) {
         Map<String, Object> data = processBizService.startProcess(
-                businessKey, applicant, new HashMap<>(body));
+                body.getBusinessKey(), body.getApplicant(), body.toVariables());
         return R.ok("流程发起成功", data);
     }
 
@@ -59,8 +60,9 @@ public class ProcessController {
     @OpLog(module = "审批流程", operation = "完成任务")
     public R<Void> complete(
             @Parameter(description = "任务ID") @PathVariable String taskId,
-            @RequestBody(required = false) Map<String, Object> vars) {
-        processBizService.completeTask(taskId, vars == null ? new HashMap<>() : vars);
+            @RequestBody(required = false) ProcessCompleteDTO vars) {
+        processBizService.completeTask(taskId,
+                vars == null ? new HashMap<>() : vars.toVariables());
         return R.ok("任务已完成", null);
     }
 

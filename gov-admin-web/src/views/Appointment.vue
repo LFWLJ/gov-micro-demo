@@ -168,7 +168,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirm, prompt } from '../utils/confirm'
 import {
   pageAppointments, createAppointment, checkinAppointment,
   finishAppointment, cancelAppointment, getAppointmentStats
@@ -258,34 +259,44 @@ async function handleSubmit() {
 }
 
 async function handleCheckin(row) {
-  await ElMessageBox.confirm(`确认签到「${row.visitorName}」？`, '提示')
+  if (!await confirm(`确认签到「${row.visitorName}」？`)) return
+
   const res = await checkinAppointment(row.id)
   if (res.code === 200) {
     ElMessage.success('签到成功')
     load()
     loadStats()
+  } else {
+    ElMessage.error(res.msg)
   }
 }
 
 async function handleFinish(row) {
-  await ElMessageBox.confirm(`确认办结「${row.visitorName}」的业务？`, '提示')
+  if (!await confirm(`确认办结「${row.visitorName}」的业务？`)) return
+
   const res = await finishAppointment(row.id)
   if (res.code === 200) {
     ElMessage.success('已办结')
     load()
     loadStats()
+  } else {
+    ElMessage.error(res.msg)
   }
 }
 
 async function handleCancel(row) {
-  const { value } = await ElMessageBox.prompt('请输入取消原因', '取消预约', {
+  const value = await prompt('请输入取消原因', '取消预约', {
     inputPlaceholder: '如 临时有事'
   })
+  if (value === null) return
+
   const res = await cancelAppointment(row.id, value)
   if (res.code === 200) {
     ElMessage.success('已取消')
     load()
     loadStats()
+  } else {
+    ElMessage.error(res.msg)
   }
 }
 

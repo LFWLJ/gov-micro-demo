@@ -55,6 +55,19 @@
             <artifactId>gov-api</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+        <!-- 接口文档：与 gov-auth / gov-application 保持一致。
+             之前本模块完全没引这两个依赖，application.yaml 里的 springdoc 配置是死配置，
+             /doc.html 实际返回的是 {"code":404,"msg":"资源不存在"}（HTTP 200 但内容不是文档）。 -->
+        <dependency>
+            <groupId>com.github.xingfudeshi</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

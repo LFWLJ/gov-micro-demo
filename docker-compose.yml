@@ -319,6 +319,9 @@ services:
       GOV_REDIS_PORT: 6379
       GOV_REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOV_ROCKETMQ_ADDR: rocketmq-namesrv:9876
+      # 与网关、gov-auth 共用同一密钥：JwtIdentityFilter 在"没有网关注入身份"时
+      # 就地校验 JWT 推导身份（接口文档页直连服务端口调试就靠它）。留空则该兜底自动失效。
+      GOV_JWT_SECRET: ${GOV_JWT_SECRET}
       JAVA_OPTS: "-XX:MaxRAMPercentage=55 -XX:InitialRAMPercentage=20 -XX:+UseSerialGC -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=96m -Xss512k -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
       # 证照 PDF 用的中文字体路径（见 docker/fonts/README.md）；留空则回退到镜像内系统字体
       GOV_PDF_FONT_PATH: ${GOV_PDF_FONT_PATH:-}
@@ -368,6 +371,9 @@ services:
       GOV_MINIO_ACCESS: ${MINIO_ROOT_USER}
       GOV_MINIO_SECRET: ${MINIO_ROOT_PASSWORD}
       GOV_MINIO_BUCKET: gov-files
+      # 与网关、gov-auth 共用同一密钥：JwtIdentityFilter 在"没有网关注入身份"时
+      # 就地校验 JWT 推导身份（接口文档页直连服务端口调试就靠它）。留空则该兜底自动失效。
+      GOV_JWT_SECRET: ${GOV_JWT_SECRET}
       JAVA_OPTS: "-XX:MaxRAMPercentage=55 -XX:InitialRAMPercentage=20 -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=96m -Xss512k -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
     # 仅供本机调试（Knife4j），生产应改为 expose 不发布端口
     ports:

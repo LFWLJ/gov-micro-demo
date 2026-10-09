@@ -1,5 +1,6 @@
 package com.gov.application.controller;
 
+import com.gov.application.dto.RectifyDTO;
 import com.gov.application.entity.Evaluation;
 import com.gov.application.service.EvaluationService;
 import com.gov.common.log.OpLog;
@@ -7,6 +8,7 @@ import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,8 +52,8 @@ public class EvaluationController {
     @PostMapping("/rectify/{evaluationId}")
     @OpLog(module = "好差评", operation = "差评整改")
     public R<Void> rectify(@PathVariable("evaluationId") Long evaluationId,
-                           @RequestBody Map<String, String> body) {
-        evaluationService.rectify(evaluationId, body.get("content"));
+                           @Valid @RequestBody RectifyDTO body) {
+        evaluationService.rectify(evaluationId, body.getContent());
         return R.ok("整改完成", null);
     }
 

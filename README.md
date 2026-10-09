@@ -193,6 +193,29 @@ docker compose up -d
 文件服务	http://localhost:8083/doc.html
 
 > 网关未做 Knife4j 聚合，`http://localhost:8090/doc.html` 是 404；请直接访问上面各服务的文档。
+
+### 在文档页调试接口（务必先读）
+
+各服务**不解析 JWT**，只信任网关注入的 `X-User-Id` / `X-Tenant-Id` 请求头
+（"服务端不信任客户端身份"是刻意设计）。因此：
+
+1. **文档里的接口必须经网关调用**。三个服务的 OpenAPI 已声明 `servers: http://localhost:8090`，
+   文档页的「调试」会自动把请求发往网关——**前提是网关容器（gov-gateway）在运行**。
+2. 调试步骤：
+   - 打开 `http://localhost:8081/doc.html`，调 `POST /api/auth/login`（白名单，无需 token）拿到 token
+   - 点右上角 **Authorize**，把 token 填进 `BearerAuth`（**只填 token 本身**，不要带 `Bearer `，
+     否则会变成 `Bearer Bearer xxx`）
+   - 之后调其它接口即可
+3. Token 写法：`Authorization` 的值填**裸 token 或 `Bearer <token>` 都可以**（网关与服务端都兼容）；
+   填成 `Basic xxx` 之类的其它 scheme 会被拒。
+4. 文档页的请求发往哪里都能用：
+   - 各服务 OpenAPI 已声明 `servers = http://localhost:8090`（网关）；
+   - 同时服务端有兜底 `JwtIdentityFilter`：**即使调试请求直连 8081/8082/8083**，
+     只要 `Authorization` 里带的是**签名有效的 JWT**，服务会自行解析出身份。
+   - 因此"填了 token 就能调"。若填了仍返回 `未登录`，说明 token 无效 / 过期 / 已登出。
+   - **不带 token 直连服务端口仍会被拒**（符合预期）。
+5. 服务端兜底开关：`gov.auth.jwt-fallback-enabled`（默认 `true`）。
+   生产环境若只允许经网关访问、不发布服务端口，可设为 `false`。
 九、License
 MIT
 

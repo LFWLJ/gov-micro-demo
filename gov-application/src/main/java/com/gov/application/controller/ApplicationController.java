@@ -1,6 +1,8 @@
 package com.gov.application.controller;
 
 import com.gov.api.feign.FileFeignClient;
+import com.gov.application.dto.ApplicationCreateDTO;
+import com.gov.application.dto.RemarkDTO;
 import com.gov.application.entity.Application;
 import com.gov.application.service.ApplicationBizService;
 import com.gov.application.service.ProcessBizService;
@@ -10,6 +12,7 @@ import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.gov.application.entity.ApplicationLog;
@@ -81,15 +84,14 @@ public class ApplicationController {
     @RequiresPerm("biz:application:add")
     @PostMapping("/create")
     @OpLog(module = "事项管理", operation = "创建事项")
-    public R<Long> create(@RequestBody Map<String, Object> body) {
-        String title = (String) body.get("title");
-        String applicant = (String) body.get("applicant");
-        String deptLeader = (String) body.getOrDefault("deptLeader", "LiSi");
-        String director = (String) body.getOrDefault("director", "WangWu");
-        String hr = (String) body.getOrDefault("hr", "ZhaoLiu");
-        Integer days = body.get("days") == null ? 3 : Integer.valueOf(body.get("days").toString());
+    public R<Long> create(@Valid @RequestBody ApplicationCreateDTO body) {
+        String deptLeader = body.getDeptLeader() == null ? "LiSi" : body.getDeptLeader();
+        String director = body.getDirector() == null ? "WangWu" : body.getDirector();
+        String hr = body.getHr() == null ? "ZhaoLiu" : body.getHr();
+        Integer days = body.getDays() == null ? 3 : body.getDays();
 
-        Long id = bizService.create(title, applicant, deptLeader, director, hr, days);
+        Long id = bizService.create(body.getTitle(), body.getApplicant(),
+                deptLeader, director, hr, days);
         return R.ok("创建成功", id);
     }
 
@@ -147,8 +149,8 @@ public class ApplicationController {
     @PostMapping("/{id}/reject")
     @OpLog(module = "事项管理", operation = "驳回事项")
     public R<Void> reject(@PathVariable("id") Long id,
-                          @RequestBody(required = false) Map<String, String> body) {
-        bizService.reject(id, body == null ? null : body.get("remark"));
+                          @RequestBody(required = false) RemarkDTO body) {
+        bizService.reject(id, body == null ? null : body.getRemark());
         return R.ok("已驳回", null);
     }
 
@@ -157,8 +159,8 @@ public class ApplicationController {
     @PostMapping("/{id}/withdraw")
     @OpLog(module = "事项管理", operation = "撤回事项")
     public R<Void> withdraw(@PathVariable("id") Long id,
-                            @RequestBody(required = false) Map<String, String> body) {
-        bizService.withdraw(id, body == null ? null : body.get("remark"));
+                            @RequestBody(required = false) RemarkDTO body) {
+        bizService.withdraw(id, body == null ? null : body.getRemark());
         return R.ok("已撤回", null);
     }
 }

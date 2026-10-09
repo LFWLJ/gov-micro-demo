@@ -1,5 +1,6 @@
 package com.gov.application.controller;
 
+import com.gov.application.dto.ConsultReplyDTO;
 import com.gov.application.entity.Consult;
 import com.gov.application.service.ConsultService;
 import com.gov.common.log.OpLog;
@@ -7,6 +8,7 @@ import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,8 +53,8 @@ public class ConsultController {
     @OpLog(module = "咨询投诉", operation = "回复工单")
     public R<Void> reply(@PathVariable("id") Long id,
                          @RequestHeader(value = "X-User-Id", required = false) String userId,
-                         @RequestBody Map<String, String> body) {
-        consultService.reply(id, userId, body.get("reply"));
+                         @Valid @RequestBody ConsultReplyDTO body) {
+        consultService.reply(id, userId, body.getReply());
         return R.ok("回复成功", null);
     }
 

@@ -1,5 +1,8 @@
 package com.gov.auth.controller;
 
+import com.gov.auth.dto.ChangePasswordDTO;
+import com.gov.auth.dto.ProfileUpdateDTO;
+import com.gov.auth.dto.ResetPasswordDTO;
 import com.gov.auth.dto.UserSaveDTO;
 import com.gov.auth.entity.SysUser;
 import com.gov.auth.service.UserService;
@@ -8,6 +11,7 @@ import com.gov.common.perm.RequiresPerm;
 import com.gov.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -77,11 +81,11 @@ public class UserController {
     @OpLog(module = "个人中心", operation = "修改个人信息")
     public R<Void> updateProfile(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody ProfileUpdateDTO body) {
         if (userId == null || userId.isEmpty()) {
             return R.fail(401, "未登录");
         }
-        userService.updateProfile(Long.valueOf(userId), body.get("realName"));
+        userService.updateProfile(Long.valueOf(userId), body.getRealName());
         return R.ok("修改成功", null);
     }
 
@@ -90,14 +94,14 @@ public class UserController {
     @OpLog(module = "个人中心", operation = "修改密码", saveParams = false)
     public R<Void> changePassword(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody ChangePasswordDTO body) {
         if (userId == null || userId.isEmpty()) {
             return R.fail(401, "未登录");
         }
         userService.changePassword(
                 Long.valueOf(userId),
-                body.get("oldPassword"),
-                body.get("newPassword")
+                body.getOldPassword(),
+                body.getNewPassword()
         );
         return R.ok("密码修改成功", null);
     }
@@ -125,8 +129,8 @@ public class UserController {
     @PostMapping("/{id}/reset-password")
     @OpLog(module = "用户管理", operation = "重置密码", saveParams = false)
     public R<Void> resetPassword(@PathVariable("id") Long id,
-                                 @RequestBody Map<String, String> body) {
-        userService.resetPassword(id, body.get("password"));
+                                 @Valid @RequestBody ResetPasswordDTO body) {
+        userService.resetPassword(id, body.getPassword());
         return R.ok("密码已重置", null);
     }
 }

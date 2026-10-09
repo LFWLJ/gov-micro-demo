@@ -44,6 +44,16 @@ logging:
   level:
     com.gov: info
 
+gov:
+  jwt:
+    # 与网关、gov-auth 共用的同一个密钥；为空时 JwtIdentityFilter 自动不生效
+    secret: ${GOV_JWT_SECRET:}
+  auth:
+    # 兜底：没有网关注入的 X-User-Id 时，服务自己校验 JWT 并推导身份。
+    # 用途——接口文档页（Knife4j）的调试请求会直连服务端口，不带网关身份，
+    # 开了它「填了 token 就能调」；生产环境若只允许经网关访问，可设为 false。
+    jwt-fallback-enabled: true
+
 # Actuator：仅暴露 health/info，供 Docker healthcheck 探活使用
 management:
   endpoints:

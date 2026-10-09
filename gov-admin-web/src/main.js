@@ -3,6 +3,11 @@ import { createPinia } from 'pinia'
 import { provideGlobalConfig } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
+// ↓ 新增：编程式 API 的样式（按需引入模式下需要手动 import）
+import 'element-plus/theme-chalk/el-overlay.css'
+import 'element-plus/theme-chalk/el-message-box.css'
+import 'element-plus/theme-chalk/el-message.css'
+
 // ---------------------------------------------------------------------------
 // Element Plus 按需引入
 //   1. 组件（<el-*>）与指令（v-loading）：vite.config.js 里 unplugin-vue-components

@@ -1,6 +1,7 @@
 package com.gov.auth.controller;
 
 import com.gov.api.dto.UserDTO;
+import com.gov.auth.dto.LoginDTO;
 import com.gov.auth.entity.SysUser;
 import com.gov.auth.service.LoginLogService;
 import com.gov.auth.service.UserService;
@@ -65,10 +66,10 @@ public class AuthController {
     @Operation(summary = "登录")
     @PostMapping("/login")
     @OpLog(module = "认证中心", operation = "用户登录", saveParams = false)
-    public R<Map<String, Object>> login(@RequestBody Map<String, String> body,
+    public R<Map<String, Object>> login(@RequestBody LoginDTO body,
                                         HttpServletRequest request) {
-        String username = body.get("username");
-        String password = body.get("password");
+        String username = body.getUsername();
+        String password = body.getPassword();
 
         SysUser user = userService.login(username, password);
 
@@ -113,11 +114,12 @@ public class AuthController {
     public R<Map<String, Object>> verify(
             @Parameter(description = "Bearer Token")
             @RequestHeader(value = "Authorization", required = false) String auth) {
-        if (auth == null || !auth.startsWith("Bearer ")) {
+        String token = extractToken(auth);
+        if (token == null) {
             throw new BizException(ResultCode.UNAUTHORIZED);
         }
         try {
-            Claims claims = jwtUtil.parse(auth.substring(7));
+            Claims claims = jwtUtil.parse(token);
             Map<String, Object> data = new HashMap<>();
             data.put("userId", claims.get("uid"));
             data.put("tenantId", claims.get("tid"));
@@ -126,6 +128,28 @@ public class AuthController {
         } catch (Exception e) {
             throw new BizException(ResultCode.UNAUTHORIZED);
         }
+    }
+
+    /**
+     * 从 Authorization 头解析 JWT：兼容 {@code Bearer <token>} 与**裸 token**。
+     *
+     * <p>网关侧（{@code TenantAuthGlobalFilter#extractToken}）采用同一套规则，
+     * 两处必须保持一致——否则登出时写进黑名单的 key 与网关查询用的 key 会对不上，
+     * 导致「登出后 token 依然可用」。
+     */
+    private String extractToken(String auth) {
+        if (auth == null || auth.isEmpty()) {
+            return null;
+        }
+        String value = auth.trim();
+        if (value.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            String token = value.substring(7).trim();
+            return token.isEmpty() ? null : token;
+        }
+        if (value.indexOf(' ') > 0) {
+            return null;
+        }
+        return value;
     }
 
     @Autowired
@@ -143,10 +167,10 @@ public class AuthController {
     @OpLog(module = "认证中心", operation = "用户登出")
     public R<Void> logout(
             @RequestHeader(value = "Authorization", required = false) String auth) {
-        if (auth == null || !auth.startsWith("Bearer ")) {
+        String token = extractToken(auth);
+        if (token == null) {
             return R.ok("未登录", null);
         }
-        String token = auth.substring(7);
         try {
             Claims claims = jwtUtil.parse(token);
             long remainMs = claims.getExpiration().getTime() - System.currentTimeMillis();

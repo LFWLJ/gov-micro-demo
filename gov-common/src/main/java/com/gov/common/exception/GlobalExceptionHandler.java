@@ -94,6 +94,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理请求体 Content-Type 不受支持
+     * <p>典型场景：接口声明的是 {@code @RequestBody}（要求 JSON），调用方却以
+     * {@code application/x-www-form-urlencoded} 提交。原先会落到兜底分支返回 500「系统繁忙」，
+     * 让调用方误以为服务出错；这里明确返回 415 并给出可操作的提示。</p>
+     *
+     * @param e Content-Type 不支持异常
+     * @return 415 统一失败响应
+     */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public R<Void> handleMediaType(org.springframework.web.HttpMediaTypeNotSupportedException e) {
+        log.warn("Content-Type 不受支持: {}", e.getContentType());
+        return R.fail(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
+                "请求 Content-Type 不受支持，请使用 application/json");
+    }
+
+    /**
      * 兜底处理：捕获所有未匹配的异常
      * <p>理论上不应命中（命中意味着代码有未考虑到的问题），以 error 级别打印完整堆栈便于排查。</p>
      *
